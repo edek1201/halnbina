@@ -60,6 +60,11 @@ class GameRenderer {
       wolffWalk: '/assets/wolffidzie.png',
       wolffShout: '/assets/wolffkrzyczy.png',
 
+      // Filip Rzepa
+      rzepaIdle: '/assets/rzepa_photo.png',
+      rzepaWalk: '/assets/rzepa_photo.png',
+      rzepaShout: '/assets/rzepa_photo.png',
+
       // Items
       mleko: '/assets/mleko.png',
       kleszcz: '/assets/kleszcz.png',
@@ -290,7 +295,99 @@ class GameRenderer {
       }
     }
 
+    // 16. Teacher Fog of War & Blindness Blackout (applies when client is playing as teacher!)
+    this.drawTeacherBlackout(ctx, gameState, myId);
+
     if (isRaging || isBossEnraged) {
+      ctx.restore();
+    }
+  }
+
+  drawTeacherBlackout(ctx, gameState, myId) {
+    if (!gameState || !gameState.teacher) return;
+    const isTeacherMe = (gameState.teacher.teacherId === myId) ||
+                        (gameState.players && gameState.players.find(p => p.id === myId)?.role === 'TEACHER');
+    if (!isTeacherMe) return;
+
+    const teacher = gameState.teacher;
+
+    // Case 1: Stunned & Blinded by Pepper Spray 500ml (Blackout + burning red eyes)
+    if (teacher.isStunned || (teacher.stunTimer && teacher.stunTimer > 0)) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(15, 5, 5, 0.97)';
+      ctx.fillRect(0, 0, this.width, this.height);
+
+      // Red burning eye irritation vignette
+      const grad = ctx.createRadialGradient(this.width / 2, this.height / 2, 80, this.width / 2, this.height / 2, 450);
+      grad.addColorStop(0, 'rgba(235, 77, 75, 0.25)');
+      grad.addColorStop(1, 'rgba(192, 57, 43, 0.9)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, this.width, this.height);
+
+      ctx.font = '900 36px "Bangers", cursive, sans-serif';
+      ctx.fillStyle = '#ff4d4d';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#000000';
+      ctx.shadowBlur = 10;
+      ctx.fillText('🌶️ OŚLEPIONA GAZEM PIEPRZOWYM 500ML! 🌶️', this.width / 2, this.height / 2 - 25);
+
+      ctx.font = '700 20px "Fredoka", sans-serif';
+      ctx.fillStyle = '#f5f6fa';
+      ctx.fillText(`Jesteś ogłuszona i nic nie widzisz! (${Math.ceil(teacher.stunTimer || 3)}s)`, this.width / 2, this.height / 2 + 20);
+      ctx.restore();
+      return;
+    }
+
+    // Case 2: Facing blackboard (BOARD state) -> Blackout below teacher desk (cannot see behind her back)
+    if (teacher.state === 'BOARD') {
+      ctx.save();
+      ctx.fillStyle = 'rgba(12, 14, 20, 0.96)';
+      ctx.fillRect(0, 165, this.width, this.height - 165);
+
+      ctx.font = '900 28px "Bangers", cursive, sans-serif';
+      ctx.fillStyle = '#f1c40f';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#000000';
+      ctx.shadowBlur = 8;
+      ctx.fillText('👀 PISZESZ NA TABLICY...', this.width / 2, 380);
+
+      ctx.font = '700 17px "Fredoka", sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('Nie widzisz co dzieje się za Twoimi plecami w klasie!', this.width / 2, 415);
+
+      ctx.font = '600 15px "Fredoka", sans-serif';
+      ctx.fillStyle = '#e74c3c';
+      ctx.fillText('Wciśnij [SPACJA] lub kliknij "OBRÓĆ SIĘ", aby spojrzeć na uczniów!', this.width / 2, 445);
+      ctx.restore();
+      return;
+    }
+
+    // Case 3: Facing class (CLASS state) -> Only sees within her vision cone, blackout everywhere else!
+    if (teacher.state === 'CLASS') {
+      ctx.save();
+      const tx = teacher.x;
+      const ty = teacher.y + 15;
+      const dyBottom = 700 - ty;
+      const maxDxBottom = 55 + dyBottom * 0.62;
+
+      ctx.beginPath();
+      // Outer canvas rectangle (clockwise)
+      ctx.rect(0, 0, this.width, this.height);
+      // Inner vision cone polygon (counter-clockwise)
+      ctx.moveTo(tx - 55, ty);
+      ctx.lineTo(tx - maxDxBottom, 700);
+      ctx.lineTo(tx + maxDxBottom, 700);
+      ctx.lineTo(tx + 55, ty);
+      ctx.closePath();
+
+      ctx.fillStyle = 'rgba(10, 12, 18, 0.95)';
+      ctx.fill('evenodd');
+
+      ctx.font = '700 13px "Fredoka", sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.textAlign = 'center';
+      ctx.fillText('🌑 MGŁA WOJNY (Poza polem widzenia)', 120, 420);
+      ctx.fillText('🌑 MGŁA WOJNY (Poza polem widzenia)', 880, 420);
       ctx.restore();
     }
   }
@@ -1145,30 +1242,103 @@ class GameRenderer {
       }
 
       // Paper airplane
-      ctx.save();
-      ctx.translate(curX, curY);
-      const angle = Math.atan2((p.targetY - p.startY), (p.targetX - p.startX));
-      ctx.rotate(angle);
+      if (p.type === 'paper') {
+        ctx.save();
+        ctx.translate(curX, curY);
+        const angle = Math.atan2((p.targetY - p.startY), (p.targetX - p.startX));
+        ctx.rotate(angle);
 
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.moveTo(14, 0);
-      ctx.lineTo(-10, -8);
-      ctx.lineTo(-4, 0);
-      ctx.lineTo(-10, 8);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = '#bdc3c7';
-      ctx.lineWidth = 1;
-      ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(14, 0);
+        ctx.lineTo(-10, -8);
+        ctx.lineTo(-4, 0);
+        ctx.lineTo(-10, 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#bdc3c7';
+        ctx.lineWidth = 1;
+        ctx.stroke();
 
-      ctx.strokeStyle = '#7f8c8d';
-      ctx.beginPath();
-      ctx.moveTo(14, 0);
-      ctx.lineTo(-4, 0);
-      ctx.stroke();
+        ctx.strokeStyle = '#7f8c8d';
+        ctx.beginPath();
+        ctx.moveTo(14, 0);
+        ctx.lineTo(-4, 0);
+        ctx.stroke();
 
-      ctx.restore();
+        ctx.restore();
+        return;
+      }
+
+      // Thrown Chair Projectile
+      if (p.type === 'chair') {
+        ctx.save();
+        ctx.translate(curX, curY);
+        const spin = (Date.now() / 45) % (Math.PI * 2);
+        ctx.rotate(spin);
+
+        // Tubular steel legs
+        ctx.strokeStyle = '#34495e';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(-12, 10);
+        ctx.lineTo(-14, 22);
+        ctx.moveTo(12, 10);
+        ctx.lineTo(14, 22);
+        ctx.moveTo(-14, 6);
+        ctx.lineTo(-14, -14);
+        ctx.moveTo(14, 6);
+        ctx.lineTo(14, -14);
+        ctx.stroke();
+
+        // Wooden chair seat
+        ctx.fillStyle = '#b3804d';
+        ctx.fillRect(-16, 2, 32, 9);
+        ctx.strokeStyle = '#8b5a2b';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(-16, 2, 32, 9);
+
+        // Curved backrest
+        ctx.fillStyle = '#b3804d';
+        ctx.fillRect(-16, -16, 32, 7);
+        ctx.strokeRect(-16, -16, 32, 7);
+
+        // Motion blur whoosh arc
+        ctx.strokeStyle = 'rgba(230, 126, 34, 0.6)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 24, 0, Math.PI);
+        ctx.stroke();
+
+        ctx.restore();
+        return;
+      }
+
+      // Pepper Spray Stream Projectile (500ml can stream)
+      if (p.type === 'pepper_spray') {
+        ctx.save();
+        ctx.translate(curX, curY);
+        const angle = Math.atan2((p.targetY - p.startY), (p.targetX - p.startX));
+        ctx.rotate(angle);
+
+        // Glowing cloud of orange/red burning pepper stream
+        const sprayGrad = ctx.createRadialGradient(0, 0, 4, 0, 0, 28);
+        sprayGrad.addColorStop(0, 'rgba(235, 77, 75, 0.95)');
+        sprayGrad.addColorStop(0.5, 'rgba(240, 147, 43, 0.75)');
+        sprayGrad.addColorStop(1, 'rgba(255, 121, 63, 0)');
+        ctx.fillStyle = sprayGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, 26, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Chili pepper icon and smoke
+        ctx.font = '15px Arial';
+        ctx.fillText('🌶️', -12, -4);
+        ctx.fillText('💨', 6, 8);
+
+        ctx.restore();
+        return;
+      }
     });
   }
 
