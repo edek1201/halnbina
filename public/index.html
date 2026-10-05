@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Lekcja Chemii z Halbiną | Multiplayer Online Live</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Fredoka:wght@400;600;700&family=Permanent+Marker&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Top Global Audio & Room Bar -->
+  <header class="top-nav">
+    <div class="logo-badge">
+      <span class="icon">🧪</span>
+      <span class="title">LEKCJA CHEMII: HALBINA</span>
+    </div>
+    <div class="nav-controls">
+      <button id="soundToggleBtn" class="nav-btn" title="Dźwięk włącz/wyłącz">
+        🔊 <span id="soundStatusText">Dźwięk: WŁ</span>
+      </button>
+      <button id="testAudioBtn" class="nav-btn-secondary" title="Przetestuj dzwonek">
+        🔔 Test Dzwonka
+      </button>
+    </div>
+  </header>
+
+  <!-- SCREEN 1: MENU / LOBBY FINDER -->
+  <main id="screenMenu" class="screen active">
+    <div class="chalkboard-card menu-box">
+      <div class="chalk-header">
+        <h1 class="main-title">🧪 LEKCJA CHEMII 🧪</h1>
+        <p class="subtitle">Z KATARZYNĄ HALBINĄ</p>
+        <div class="chalk-line"></div>
+      </div>
+
+      <div class="form-container">
+        <div class="input-group">
+          <label for="playerNameInput">Twój pseudonim w dzienniku:</label>
+          <input type="text" id="playerNameInput" maxlength="16" placeholder="np. Romanowski" value="Romanowski">
+        </div>
+
+        <div class="menu-actions">
+          <div class="action-card">
+            <h3>Stwórz nową lekcję</h3>
+            <p>Zostań gospodarzem, zgarnij kod i zaproś znajomych z klasy!</p>
+            <div class="mode-select">
+              <label for="gameModeSelect">Tryb lekcji:</label>
+              <select id="gameModeSelect">
+                <option value="classic">Klasyczny Szkolny Chaos (90s)</option>
+                <option value="hardcore">Szybka Kartkówka (60s, czujna Halbina)</option>
+              </select>
+            </div>
+            <button id="btnCreateRoom" class="btn btn-primary btn-large">
+              🏫 Stwórz Lekcję
+            </button>
+          </div>
+
+          <div class="action-divider">LUB</div>
+
+          <div class="action-card">
+            <h3>Dołącz do lekcji</h3>
+            <p>Wpisz 5-literowy kod podany przez kolegę z ławki:</p>
+            <div class="input-group">
+              <input type="text" id="roomCodeInput" maxlength="5" placeholder="KOD NP. ABCDE" class="code-input">
+            </div>
+            <button id="btnJoinRoom" class="btn btn-secondary btn-large">
+              🚪 Dołącz do Klasy
+            </button>
+          </div>
+        </div>
+
+        <!-- Rules Box -->
+        <div class="rules-card">
+          <h4>📜 Zasady Przetrwania na Lekcji:</h4>
+          <ul>
+            <li>📢 <strong>Krzycz</strong>, gdy Halbina pisze wzory na tablicy (zdobywasz Respekt)!</li>
+            <li>👀 <strong>Uważaj</strong>, gdy Halbina się odwraca do klasy – jeśli przyłapie Cię na krzyku, natychmiast przegrywasz!</li>
+            <li>🪑 <strong>Pilnuj ławki</strong> – jeśli pani zobaczy Cię chodzącego po sali, dostajesz <strong>Uwagę</strong>.</li>
+            <li>🚨 <strong>3 Uwagi = DYREKTOR</strong> i wylatujesz ze szkoły!</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- SCREEN 2: LOBBY -->
+  <main id="screenLobby" class="screen">
+    <div class="chalkboard-card lobby-box">
+      <div class="lobby-header">
+        <div class="room-code-tag">
+          <span>KOD TWOJEJ KLASY:</span>
+          <strong id="displayRoomCode">-----</strong>
+          <button id="btnCopyCode" class="btn-icon" title="Skopiuj kod">📋 Kopiuj</button>
+        </div>
+        <h2>Poczekalnia przed dzwonkiem</h2>
+      </div>
+
+      <div class="lobby-content">
+        <div class="players-panel">
+          <h3>Uczniowie w klasie (<span id="playerCount">0</span>/12):</h3>
+          <div id="lobbyPlayersList" class="players-grid">
+            <!-- Player cards inserted dynamically -->
+          </div>
+        </div>
+
+        <div class="lobby-options-panel">
+          <div class="teacher-role-box">
+            <h4>👩‍🏫 Obsada Katarzyny Halbina:</h4>
+            <div id="hostRoleControls">
+              <label class="radio-label">
+                <input type="radio" name="teacherChoice" value="random" checked>
+                <span>Losowy gracz z obecnych staje się Halbiną</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="teacherChoice" value="bot">
+                <span>Nauczycielka AI (Wszyscy gramy jako uczniowie)</span>
+              </label>
+            </div>
+            <p id="nonHostNotice" class="non-host-text">Czekamy, aż gospodarz uderzy w dzwonek i rozpocznie lekcję...</p>
+          </div>
+
+          <div class="lobby-actions">
+            <button id="btnStartGame" class="btn btn-start btn-large">
+              🔔 ZACZNIJ LEKCJĘ!
+            </button>
+            <button id="btnLeaveLobby" class="btn btn-outline">
+              ⬅️ Opuść klasę
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- SCREEN 3: GAME SCREEN -->
+  <main id="screenGame" class="screen">
+    <!-- Top Classroom HUD -->
+    <div class="game-hud">
+      <div class="hud-item time-box">
+        <span class="hud-icon">⏱️</span>
+        <div class="hud-data">
+          <span class="label">CZAS DO DZWONKA</span>
+          <span id="hudTimer" class="value">01:30</span>
+        </div>
+      </div>
+
+      <div id="halbinaStatusBadge" class="hud-item halbina-status status-board">
+        <span class="status-dot"></span>
+        <span id="halbinaStatusText">✏️ Halbina pisze na tablicy...</span>
+      </div>
+
+      <div class="hud-item role-box">
+        <div class="hud-data">
+          <span class="label">TWOJA ROLA</span>
+          <span id="hudRole" class="value">🎓 Uczeń</span>
+        </div>
+      </div>
+
+      <div id="hudUwagiContainer" class="hud-item uwagi-box">
+        <span class="label">UWAGI:</span>
+        <div class="strikes">
+          <span class="strike" id="strike1">⚠️</span>
+          <span class="strike" id="strike2">⚠️</span>
+          <span class="strike" id="strike3">⚠️</span>
+        </div>
+      </div>
+
+      <div id="hudAngerContainer" class="hud-item anger-box">
+        <span class="hud-icon">😡</span>
+        <div class="hud-data">
+          <span class="label">WKURWIENIE HALBINA</span>
+          <div class="anger-meter-bar">
+            <div id="angerMeterFill" class="anger-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+        <span id="hudAngerText" class="anger-pct">0%</span>
+      </div>
+
+      <div class="hud-item points-box">
+        <span class="hud-icon">🏆</span>
+        <div class="hud-data">
+          <span class="label">RESPEKT</span>
+          <span id="hudPoints" class="value">0 pkt</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Event Ticker -->
+    <div id="eventTicker" class="event-ticker">
+      <span id="tickerText">Dzwonek zabrzmiał! Lekcja chemii rozpoczęta.</span>
+    </div>
+
+    <!-- Canvas Playfield -->
+    <div class="canvas-container">
+      <canvas id="gameCanvas" width="1000" height="700"></canvas>
+      
+      <!-- Screen Alert Overlay (caught red-handed) -->
+      <div id="alarmOverlay" class="alarm-overlay">
+        <div class="alarm-content">
+          <h2 id="alarmTitle">🚨 PRZYŁAPANY! 🚨</h2>
+          <p id="alarmDesc">Pani Halbina usłyszała Twój krzyk!</p>
+        </div>
+      </div>
+
+      <!-- Police Siren Flashing Banner -->
+      <div id="policeBanner" class="police-banner">
+        🚨 SZKIEŁY JADĄ! SYRENY RADIOWOZU POD OKNAMI! 🚨
+      </div>
+
+      <!-- Intro Bell Transition Overlay -->
+      <div id="lessonIntroOverlay" class="intro-overlay">
+        <div class="intro-box">
+          <div class="bell-animation">🔔</div>
+          <h2>DZWONEK NA LEKCJĘ!</h2>
+          <p>Katarzyna Halbina wchodzi do klasy...</p>
+          <div class="intro-countdown" id="introCountdown">3</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Controls for Student -->
+    <div id="studentControls" class="bottom-controls">
+      <div class="shout-bar-header">
+        <span class="shout-title">📢 WYBIERZ KRZYK (Kliknij lub wciśnij klawisz 1, 2, 3):</span>
+        <span id="deskNotice" class="desk-indicator safe">🪑 Jesteś w swojej ławce (Bezpiecznie)</span>
+      </div>
+
+      <div class="shout-cards-grid">
+        <button class="shout-card" id="shoutBtn1" data-index="0">
+          <span class="card-key">1</span>
+          <span class="card-text" id="shoutText1">Szkieły jadą!</span>
+        </button>
+        <button class="shout-card" id="shoutBtn2" data-index="1">
+          <span class="card-key">2</span>
+          <span class="card-text" id="shoutText2">Surron!</span>
+        </button>
+        <button class="shout-card" id="shoutBtn3" data-index="2">
+          <span class="card-key">3</span>
+          <span class="card-text" id="shoutText3">Masz długopis?</span>
+        </button>
+      </div>
+
+      <!-- Romanowski Special Action Buttons -->
+      <div class="romanowski-actions-bar">
+        <button id="btnDuck" class="action-btn btn-duck" title="Kucnij za ławką (Klawisz C)">
+          🙈 <strong>[C] Kucnij za ławką</strong>
+        </button>
+        <button id="btnCheat" class="action-btn btn-cheat" title="Ściągaj chemię (Przytrzymaj E)">
+          📝 <strong>[E] Ściągaj chemię (+35 pkt)</strong>
+        </button>
+        <button id="btnThrowPaper" class="action-btn btn-throw" title="Rzuć samolot z papieru w tablicę (Klawisz F)">
+          ✈️ <strong>[F] Rzuć samolotem</strong>
+        </button>
+      </div>
+
+      <div class="movement-hint">
+        <span>🎮 Sterowanie: <strong>[W][A][S][D]</strong> - Chodzenie | <strong>[1][2][3]</strong> - Krzyk | <strong>[C]</strong> - Kucnij | <strong>[E]</strong> - Ściągaj | <strong>[F]</strong> - Rzuć samolotem | <strong>[R]</strong> - Ławka</span>
+      </div>
+    </div>
+
+    <!-- Bottom Controls for Teacher (Katarzyna Halbina) -->
+    <div id="teacherControls" class="bottom-controls teacher-mode" style="display: none;">
+      <div class="teacher-bar">
+        <div class="teacher-info">
+          <h3>👩‍🏫 JESTEŚ KATARZYNĄ HALBINĄ!</h3>
+          <p>Pilnuj porządku w klasie chemicznej! Przyłapuj krzyczących uczniów i tych poza ławkami.</p>
+        </div>
+        <div class="teacher-actions">
+          <button id="btnTeacherTurn" class="btn btn-warning btn-turn">
+            🔄 OBRÓĆ SIĘ DO KLASY / PISZ NA TABLICY (SPACJA)
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- SCREEN 4: GAME OVER MODAL -->
+  <div id="modalGameOver" class="modal-overlay">
+    <div class="chalkboard-card modal-box">
+      <div class="modal-header">
+        <h2 id="gameOverTitle">🔔 DZWONEK NA PRZERWĘ!</h2>
+        <p id="gameOverSubtitle">Koniec męczarni z chemią!</p>
+      </div>
+
+      <div class="modal-body">
+        <h3>🏆 RANKING KLASOWYCH ZADYMIARZY:</h3>
+        <div class="leaderboard-table-container">
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th>Miejsce</th>
+                <th>Uczeń</th>
+                <th>Punkty Respektu</th>
+                <th>Uwagi</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody">
+              <!-- Leaderboard rows dynamically filled -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="btnRestartLobby" class="btn btn-primary btn-large">
+          🔄 Zagraj Ponownie (Wróć do Poczekalni)
+        </button>
+        <button id="btnQuitToMenu" class="btn btn-outline">
+          🚪 Wyjdź do Menu
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.io and Scripts -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
