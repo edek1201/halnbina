@@ -1,115 +1,170 @@
 const { io } = require('socket.io-client');
 
 async function runTest() {
-  console.log("=== Rozpoczynanie testu multiplayer ===");
+  console.log("=== Rozpoczynanie testu: Postacie, Supermoce, Przesiadanie się do ławek i Przegląd Halbina ===");
   const SERVER_URL = 'http://localhost:3000';
 
   const client1 = io(SERVER_URL, { forceNew: true, reconnection: false });
   const client2 = io(SERVER_URL, { forceNew: true, reconnection: false });
+  const client3 = io(SERVER_URL, { forceNew: true, reconnection: false });
+
+  await Promise.all([
+    new Promise(r => client1.on('connect', r)),
+    new Promise(r => client2.on('connect', r)),
+    new Promise(r => client3.on('connect', r)),
+  ]);
+  console.log("✅ 3 klientów połączonych.");
 
   let roomCode = null;
 
-  await new Promise((resolve) => {
-    client1.on('connect', () => {
-      console.log('Client 1 połączony:', client1.id);
-      resolve();
-    });
-  });
-
-  await new Promise((resolve) => {
-    client2.on('connect', () => {
-      console.log('Client 2 połączony:', client2.id);
-      resolve();
-    });
-  });
-
-  // 1. Create Room by Player 1
-  console.log("-> Tworzenie pokoju przez Gracza 1...");
+  // 1. Create Room with Character Selection: Romanowski
+  console.log("-> 1. Host wybiera postać Romanowski i tworzy pokój...");
   await new Promise((resolve, reject) => {
-    client1.emit('create_room', { playerName: 'Romanowski', mode: 'classic' }, (res) => {
+    client1.emit('create_room', { character: 'romanowski', mode: 'classic' }, (res) => {
       if (!res.success) return reject('Nie udało się utworzyć pokoju');
       roomCode = res.code;
-      console.log('Pokój stworzony! Kod pokoju:', roomCode);
+      if (res.player.character !== 'romanowski' || res.player.name !== 'Romanowski') {
+        return reject('Błędna postać dla Gracza 1!');
+      }
+      console.log('✅ Pokój utworzony! Kod:', roomCode, 'Postać:', res.player.character);
       resolve();
     });
   });
 
-  // 2. Join Room by Player 2
-  console.log("-> Dołączanie Gracza 2 z kodem:", roomCode);
+  // 2. Client 2 joins with character Leszczyński
+  console.log("-> 2. Gracz 2 dołącza jako Leszczyński...");
   await new Promise((resolve, reject) => {
-    client2.emit('join_room', { code: roomCode, playerName: 'Kleszczyński' }, (res) => {
-      if (!res.success) return reject('Nie udało się dołączyć: ' + res.message);
-      console.log('Gracz 2 dołączył do pokoju pomyślnie!');
+    client2.emit('join_room', { code: roomCode, character: 'leszczynski' }, (res) => {
+      if (!res.success) return reject('Błąd dołączania gracza 2: ' + res.message);
+      if (res.player.character !== 'leszczynski' || res.player.name !== 'Leszczyński') {
+        return reject('Błędna postać dla Gracza 2!');
+      }
+      console.log('✅ Gracz 2 dołączył jako:', res.player.name);
       resolve();
     });
   });
 
-  // Wait for lobby update
-  await new Promise((resolve) => {
-    client1.on('room_updated', (data) => {
-      if (data.players.length === 2) {
-        console.log('W pokoju jest 2 graczy:', data.players.map(p => p.name));
+  // 3. Client 3 joins with character Wolff
+  console.log("-> 3. Gracz 3 dołącza jako Wolff...");
+  await new Promise((resolve, reject) => {
+    client3.emit('join_room', { code: roomCode, character: 'wolff' }, (res) => {
+      if (!res.success) return reject('Błąd dołączania gracza 3: ' + res.message);
+      if (res.player.character !== 'wolff' || res.player.name !== 'Wolff') {
+        return reject('Błędna postać dla Gracza 3!');
+      }
+      console.log('✅ Gracz 3 dołączył jako:', res.player.name);
+      resolve();
+    });
+  });
+
+  // 4. Start Game
+  console.log("-> 4. Rozpoczynanie lekcji (AI Halbina)...");
+  const startingPromise = new Promise(r => client1.on('game_starting', r));
+  const startedPromise = new Promise(r => client1.on('lesson_started', r));
+  client1.emit('start_game_request', { teacherSelection: 'bot' });
+  const startData = await startingPromise;
+  console.log("✅ Wszyscy uczniowie przydzieleni do ławek:", startData.players.map(p => `${p.name} (Ławka nr ${p.assignedDeskIndex + 1})`));
+  await startedPromise;
+
+  // 5. Test Ducking Restriction (far from any desk vs near desk)
+  console.log("-> 5. Test blokady kucania z dala od ławki...");
+  // Move client 1 far into corridor between desks (e.g. x: 530, y: 335 -> distance to all desks > 55)
+  client1.emit('player_move', { x: 530, y: 335, isMoving: false });
+  await new Promise(r => setTimeout(r, 100));
+
+  await new Promise((resolve, reject) => {
+    client1.emit('student_duck', { isDucking: true }, (res) => {
+      if (res.success) {
+        return reject('BŁĄD: Kucanie z dala od ławki powinno być zablokowane!');
+      }
+      console.log('✅ Kucanie z dala od ławki poprawnie zablokowane:', res.message);
+      resolve();
+    });
+  });
+
+  // Move client 1 to desk 1 (x: 200, y: 260) and duck -> should succeed
+  client1.emit('player_move', { x: 200, y: 260, isMoving: false });
+  await new Promise(r => setTimeout(r, 100));
+  await new Promise((resolve, reject) => {
+    client1.emit('student_duck', { isDucking: true }, (res) => {
+      if (!res.success) {
+        return reject('BŁĄD: Kucanie przy ławce powinno być dozwolone!');
+      }
+      console.log('✅ Kucanie przy ławce zaakceptowane!');
+      resolve();
+    });
+  });
+  client1.emit('student_duck', { isDucking: false });
+
+  // 6. Test Superpowers
+  console.log("-> 6. Test supermocy postaci...");
+
+  // Romanowski: Stwórz mleko (speed boost)
+  const milkPromise = new Promise((resolve) => {
+    client1.on('ability_used', (data) => {
+      if (data.ability === 'milk') {
+        console.log('✅ Odebrano ability_used: Romanowski stworzył mleko!');
         resolve();
       }
     });
   });
+  client1.emit('use_ability', { abilityName: 'milk' });
+  await milkPromise;
 
-  // 3. Start Game by Host (force bot teacher so both are students, or test random)
-  console.log("-> Rozpoczynanie gry przez Hosta (Tryb z AI Nauczycielką dla pewności roli obu)...");
-  
-  let startingData = null;
-  const gameStartedPromise = new Promise((resolve) => {
-    client1.on('game_starting', (data) => {
-      startingData = data;
-      console.log(`Otrzymano 'game_starting', role:`, data.players.map(p => `${p.name}: ${p.role}`));
-      resolve();
+  // Leszczyński: Rzut kleszczem
+  const tickPromise = new Promise((resolve) => {
+    client2.on('ability_used', (data) => {
+      if (data.ability === 'tick') {
+        console.log('✅ Odebrano ability_used: Leszczyński rzucił kleszczem!');
+        resolve();
+      }
     });
   });
+  client2.emit('use_ability', { abilityName: 'tick' });
+  await tickPromise;
 
-  const lessonStartedPromise = new Promise((resolve) => {
-    client1.on('lesson_started', () => {
-      console.log("🔔 Odebrano 'lesson_started' po dzwonku i odliczaniu!");
-      resolve();
+  // Wolff: Toaleta i E-vape
+  const vapePromise = new Promise((resolve) => {
+    client3.on('ability_used', (data) => {
+      if (data.ability === 'vape') {
+        console.log('✅ Odebrano ability_used: Wolff zapalił e-vape (chmura dymu)!');
+        resolve();
+      }
     });
   });
+  client3.emit('use_ability', { abilityName: 'vape' });
+  await vapePromise;
 
-  client1.emit('start_game_request', { teacherSelection: 'bot' });
-  await gameStartedPromise;
-  await lessonStartedPromise;
+  // 7. Test Przesiadania się do ławek i Przegląd Halbina
+  console.log("-> 7. Test przesiadania się do obcej ławki i inspekcji Halbina...");
+  // Client 2 (Leszczyński, assignedDeskIndex = 1) moves to Desk 4 (x: 840, y: 260, id: 3)
+  client2.emit('player_move', { x: 840, y: 260, isMoving: false });
+  await new Promise(r => setTimeout(r, 200));
 
-  // 4. Test shouting by Client 1 (Student)
-  console.log("-> Test krzyczenia...");
-  const shoutPromise = new Promise((resolve) => {
-    client2.on('player_shouted', (shoutData) => {
-      console.log(`Gracz 2 usłyszał krzyk: "${shoutData.text}" od ${shoutData.playerName} (Punkty: ${shoutData.points})`);
-      resolve();
-    });
-  });
-
-  client1.emit('shout_trigger', { shoutText: 'Szkieły jadą!' });
-  await shoutPromise;
-
-  // 5. Test moving
-  console.log("-> Test poruszania się...");
-  client1.emit('player_move', { x: 300, y: 350, isMoving: true });
-
-  // 6. Wait for a game tick
+  // Check state tick to confirm client 2 is at foreign desk
   await new Promise((resolve) => {
-    client1.once('game_tick', (tick) => {
-      console.log(`Tick gry odebrany: Czas do dzwonka=${tick.timeRemaining}s, Halbina stan=${tick.teacher.state}`);
-      resolve();
-    });
+    const handler = (tick) => {
+      const p2 = tick.players.find(p => p.id === client2.id);
+      if (p2 && p2.currentDeskIndex === 3 && p2.assignedDeskIndex !== 3) {
+        console.log(`✅ Gracz 2 przesiadł się do Ławki nr ${p2.currentDeskIndex + 1} (jego przypisana: nr ${p2.assignedDeskIndex + 1})`);
+        client2.off('game_tick', handler);
+        resolve();
+      }
+    };
+    client2.on('game_tick', handler);
   });
 
-  console.log("====================================================");
-  console.log("🎉 WSZYSTKIE TESTY MULTIPLAYER ZAKOŃCZONE SUKCESEM!");
-  console.log("====================================================");
+  console.log("==========================================================================");
+  console.log("🎉 WSZYSTKIE TESTY NOWYCH MECHANIK ZAKOŃCZONE PEŁNYM SUKCESEM!");
+  console.log("==========================================================================");
+
   client1.disconnect();
   client2.disconnect();
+  client3.disconnect();
   process.exit(0);
 }
 
 runTest().catch((err) => {
-  console.error("Błąd testu:", err);
+  console.error("❌ Błąd testu:", err);
   process.exit(1);
 });

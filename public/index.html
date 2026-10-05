@@ -37,9 +37,63 @@
       </div>
 
       <div class="form-container">
-        <div class="input-group">
-          <label for="playerNameInput">Twój pseudonim w dzienniku:</label>
-          <input type="text" id="playerNameInput" maxlength="16" placeholder="np. Romanowski" value="Romanowski">
+        <div class="character-select-section">
+          <label class="section-title">Wybierz swoją postać do gry:</label>
+          <div class="character-cards-grid" id="charSelectGrid">
+            <!-- Card 1: Romanowski -->
+            <div class="char-card active" data-character="romanowski">
+              <div class="char-card-portrait">
+                <img src="assets/romanowski_photo.png" alt="Romanowski" class="char-photo">
+                <span class="char-badge badge-romanowski">Otyły z Levi's</span>
+              </div>
+              <div class="char-info">
+                <h3 class="char-name">Romanowski</h3>
+                <p class="char-desc">Mistrz szkolnego relaksu w szarej koszulce Levi's.</p>
+                <div class="char-power">
+                  <span class="power-label">⚡ SUPERMOC [Q]:</span>
+                  <span class="power-name">🥛 Stwórz mleko</span>
+                  <span class="power-desc">+75% prędkości biegu przez 3 sekundy!</span>
+                </div>
+              </div>
+              <div class="char-check">✓ WYBRANY</div>
+            </div>
+
+            <!-- Card 2: Leszczyński -->
+            <div class="char-card" data-character="leszczynski">
+              <div class="char-card-portrait">
+                <img src="assets/leszczynski_photo.png" alt="Leszczyński" class="char-photo">
+                <span class="char-badge badge-leszczynski">Czarna koszulka 👍</span>
+              </div>
+              <div class="char-info">
+                <h3 class="char-name">Leszczyński</h3>
+                <p class="char-desc">Klimat z kciukiem w górze i niebezpiecznymi owadami.</p>
+                <div class="char-power">
+                  <span class="power-label">⚡ SUPERMOC [Q]:</span>
+                  <span class="power-name">🕷️ Rzut kleszczem</span>
+                  <span class="power-desc">Rzuca kleszcza w Halbinę (+2s do jej odwrócenia)!</span>
+                </div>
+              </div>
+              <div class="char-check">WYBIERZ</div>
+            </div>
+
+            <!-- Card 3: Wolff -->
+            <div class="char-card" data-character="wolff">
+              <div class="char-card-portrait">
+                <img src="assets/wolff_photo.png" alt="Wolff" class="char-photo">
+                <span class="char-badge badge-wolff">Kurtka puchowa</span>
+              </div>
+              <div class="char-info">
+                <h3 class="char-name">Wolff</h3>
+                <p class="char-desc">Sprytny taktyk w czarnej puchówce z e-papierosem.</p>
+                <div class="char-power">
+                  <span class="power-label">⚡ SUPERMOCE:</span>
+                  <span class="power-name">🚽 [Q] Mogę do toalety?! (+1s)</span>
+                  <span class="power-name">💨 [V] Zapal e-vape (chmura dymu)</span>
+                </div>
+              </div>
+              <div class="char-check">WYBIERZ</div>
+            </div>
+          </div>
         </div>
 
         <div class="menu-actions">
@@ -51,6 +105,7 @@
               <select id="gameModeSelect">
                 <option value="classic">Klasyczny Szkolny Chaos (90s)</option>
                 <option value="hardcore">Szybka Kartkówka (60s, czujna Halbina)</option>
+                <option value="boss">💀 BOSS FIGHT: Starcie z Mega Halbiną! (120s)</option>
               </select>
             </div>
             <button id="btnCreateRoom" class="btn btn-primary btn-large">
@@ -76,10 +131,13 @@
         <div class="rules-card">
           <h4>📜 Zasady Przetrwania na Lekcji:</h4>
           <ul>
-            <li>📢 <strong>Krzycz</strong>, gdy Halbina pisze wzory na tablicy (zdobywasz Respekt)!</li>
-            <li>👀 <strong>Uważaj</strong>, gdy Halbina się odwraca do klasy – jeśli przyłapie Cię na krzyku, natychmiast przegrywasz!</li>
-            <li>🪑 <strong>Pilnuj ławki</strong> – jeśli pani zobaczy Cię chodzącego po sali, dostajesz <strong>Uwagę</strong>.</li>
-            <li>🚨 <strong>3 Uwagi = DYREKTOR</strong> i wylatujesz ze szkoły!</li>
+            <li>📢 <strong>Krzycz</strong>, gdy Halbina pisze na tablicy (zdobywasz Respekt)!</li>
+            <li>👀 <strong>Uważaj na odwrót</strong> – gdy patrzy na klasę, krzyk lub spacer po sali = natychmiastowa <strong>Uwaga</strong>!</li>
+            <li>🪑 <strong>Przesiadanie się do ławek</strong>: możesz siedzieć w dowolnej ławce, by nie dostać uwagi za chodzenie, ALE jeśli Halbina zrobi <strong>Przegląd Ławki</strong> (kliknie na Ciebie) i jesteś na złej ławce – dostajesz <strong>Uwagę</strong>!</li>
+            <li>🙈 <strong>Kucanie [C]</strong>: schować się pod ławką możesz <strong>tylko stojąc tuż przy ławce</strong>!</li>
+            <li>⚡ <strong>Supermoce</strong>: Romanowski (🥛 mleko: turbo sprint), Leszczyński (🕷️ kleszcz w babkę: +2s opóźnienia), Wolff (🚽 toaleta: +1s, 💨 e-vape: chmura dymu ukrywająca uczniów)!</li>
+            <li>💀 <strong>BOSS FIGHT</strong>: Epickie starcie z Mega Halbiną! Unikaj kwasu i kartkówek, rzucaj samolotami [F], zbieraj Super Kredę (85 DMG), a mleko Romanowskiego czyści kwas!</li>
+            <li>🚨 <strong>3 Uwagi = DYREKTOR</strong> i natychmiastowe wyrzucenie z lekcji!</li>
           </ul>
         </div>
       </div>
@@ -195,6 +253,23 @@
 
     <!-- Canvas Playfield -->
     <div class="canvas-container">
+      <!-- Boss Fight Health Bar (Mega Halbina) -->
+      <div id="bossBarContainer" class="boss-bar-container" style="display: none;">
+        <div class="boss-header-row">
+          <div class="boss-identity">
+            <span class="boss-skull">💀</span>
+            <span class="boss-name">MEGA HALBINA (CHEMICZNY TYRANT)</span>
+            <span id="bossPhaseBadge" class="boss-phase-badge phase-1">FAZA 1</span>
+          </div>
+          <div class="boss-hp-numbers">
+            <span id="bossHpText">2000 / 2000 HP</span>
+          </div>
+        </div>
+        <div class="boss-hp-track">
+          <div id="bossHpFill" class="boss-hp-fill" style="width: 100%;"></div>
+        </div>
+      </div>
+
       <canvas id="gameCanvas" width="1000" height="700"></canvas>
       
       <!-- Screen Alert Overlay (caught red-handed) -->
@@ -243,21 +318,30 @@
         </button>
       </div>
 
-      <!-- Romanowski Special Action Buttons -->
-      <div class="romanowski-actions-bar">
+      <!-- Student Action Buttons & Badges -->
+      <div class="student-actions-bar">
         <button id="btnDuck" class="action-btn btn-duck" title="Kucnij za ławką (Klawisz C)">
           🙈 <strong>[C] Kucnij za ławką</strong>
         </button>
         <button id="btnCheat" class="action-btn btn-cheat" title="Ściągaj chemię (Przytrzymaj E)">
           📝 <strong>[E] Ściągaj chemię (+35 pkt)</strong>
         </button>
-        <button id="btnThrowPaper" class="action-btn btn-throw" title="Rzuć samolot z papieru w tablicę (Klawisz F)">
-          ✈️ <strong>[F] Rzuć samolotem</strong>
+        <button id="btnThrowPaper" class="action-btn btn-throw" title="Rzuć samolot z papieru / kredę (Klawisz F)">
+          ✈️ <strong>[F] Samolot</strong>
         </button>
+        <button id="btnAbility1" class="action-btn btn-power power-q" title="Główna supermoc postaci (Klawisz Q)">
+          <span id="btnAbility1Icon">🥛</span> <strong id="btnAbility1Text">[Q] Stwórz Mleko</strong>
+        </button>
+        <button id="btnAbility2" class="action-btn btn-power power-v" style="display: none;" title="Druga supermoc (Klawisz V)">
+          <span id="btnAbility2Icon">💨</span> <strong id="btnAbility2Text">[V] Zapal e-vape</strong>
+        </button>
+        <span id="superChalkBadge" class="super-chalk-badge" style="display: none;">
+          🖍️ <strong>SUPER KREDA [F]! (85 DMG)</strong>
+        </span>
       </div>
 
       <div class="movement-hint">
-        <span>🎮 Sterowanie: <strong>[W][A][S][D]</strong> - Chodzenie | <strong>[1][2][3]</strong> - Krzyk | <strong>[C]</strong> - Kucnij | <strong>[E]</strong> - Ściągaj | <strong>[F]</strong> - Rzuć samolotem | <strong>[R]</strong> - Ławka</span>
+        <span>🎮 Sterowanie: <strong>[W][A][S][D]</strong> - Chodzenie | <strong>[1][2][3]</strong> - Krzyk | <strong>[C]</strong> - Kucnij przy ławce | <strong>[E]</strong> - Ściągaj | <strong>[F]</strong> - Samolot / Kreda | <strong>[Q] / [V]</strong> - Supermoce</span>
       </div>
     </div>
 
@@ -266,9 +350,10 @@
       <div class="teacher-bar">
         <div class="teacher-info">
           <h3>👩‍🏫 JESTEŚ KATARZYNĄ HALBINĄ!</h3>
-          <p>Pilnuj porządku w klasie chemicznej! Przyłapuj krzyczących uczniów i tych poza ławkami.</p>
+          <p>Pilnuj porządku! Kliknij na ucznia w klasie, aby zrobić <strong>PRZEGLĄD ŁAWEK</strong> (1 na obrót). Jeśli siedzi na złej ławce – wlep Uwagę!</p>
         </div>
         <div class="teacher-actions">
+          <span id="teacherInspectBadge" class="inspect-badge ready">🔍 Przegląd: DOSTĘPNY (Kliknij ucznia)</span>
           <button id="btnTeacherTurn" class="btn btn-warning btn-turn">
             🔄 OBRÓĆ SIĘ DO KLASY / PISZ NA TABLICY (SPACJA)
           </button>
