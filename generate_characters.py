@@ -196,7 +196,7 @@ def create_character_sprite(char_type="romanowski", state="idle"):
             set_pixel(38, 19, 20, 20, 20)
             fill_rect(29, 25, 35, 26, 160, 60, 60)
 
-    else:
+    elif char_type == "wolff":
         # WOLFF: Mid otyły w czarnej puchowej kurtce, czarne spodnie, messy blonde hair
         hair_r, hair_g, hair_b = 190, 150, 95 # messy blonde/light brown
         jacket_r, jacket_g, jacket_b = 25, 25, 28 # black puffer jacket
@@ -264,6 +264,179 @@ def create_character_sprite(char_type="romanowski", state="idle"):
             set_pixel(38, 18, 50, 40, 30)
             fill_rect(29, 24, 35, 25, 170, 70, 70)
 
+    elif char_type == "rzepa":
+        # FILIP RZEPA: Umięśniony fighter, czarny sportowy t-shirt Pitbull/Octagon, saszetka/nerka na piersi, szare dresy, białe buty
+        hair_r, hair_g, hair_b = 30, 25, 20 # dark buzzcut
+        shirt_r, shirt_g, shirt_b = 20, 20, 24 # black athletic tee
+        pants_r, pants_g, pants_b = 58, 62, 68 # grey athletic joggers
+        shoe_r, shoe_g, shoe_b = 245, 245, 250 # white trainers
+        bag_r, bag_g, bag_b = 38, 38, 42 # black shoulder bag
+
+        # Legs (Athletic tapered joggers with cuffs)
+        if state == "walk":
+            fill_rect(22, 54, 28, 71, pants_r, pants_g, pants_b)
+            fill_rect(36, 54, 42, 67, pants_r, pants_g, pants_b)
+            fill_rect(20, 69, 28, 75, shoe_r, shoe_g, shoe_b)
+            fill_rect(36, 65, 44, 71, shoe_r, shoe_g, shoe_b)
+        else:
+            fill_rect(23, 54, 29, 71, pants_r, pants_g, pants_b)
+            fill_rect(35, 54, 41, 71, pants_r, pants_g, pants_b)
+            fill_rect(21, 70, 29, 75, shoe_r, shoe_g, shoe_b)
+            fill_rect(35, 70, 43, 75, shoe_r, shoe_g, shoe_b)
+
+        # Athletic broad muscular torso
+        fill_rect(19, 31, 45, 55, shirt_r, shirt_g, shirt_b)
+        # Red athletic collar / chest logo (Octagon / Pitbull style)
+        fill_rect(28, 36, 36, 38, 220, 40, 40)
+        fill_rect(30, 39, 34, 41, 240, 240, 240) # white logo mark
+
+        # Cross-body shoulder bag strap & pouch
+        for s in range(32, 52):
+            sx = int(22 + (s - 32) * 0.9)
+            set_pixel(sx, s, bag_r, bag_g, bag_b)
+            set_pixel(sx + 1, s, bag_r, bag_g, bag_b)
+        # Small tactical chest pouch
+        fill_rect(33, 44, 41, 50, bag_r, bag_g, bag_b)
+        fill_rect(34, 46, 40, 47, 180, 180, 190) # silver zipper
+
+        # Muscular Biceps / Arms
+        if state == "machete":
+            # Right arm slashing with MASSIVE GLEAMING MACHETE!
+            fill_rect(14, 32, 19, 48, shirt_r, shirt_g, shirt_b)
+            fill_circle(16, 50, 4, skin_r, skin_g, skin_b)
+
+            # Raised swinging muscular right arm
+            fill_rect(44, 22, 51, 38, shirt_r, shirt_g, shirt_b)
+            fill_circle(50, 20, 5, skin_r, skin_g, skin_b) # fist holding machete grip
+
+            # Machete Handle (black tactical grip)
+            fill_rect(50, 16, 53, 24, 25, 25, 25)
+
+            # Machete Blade (long heavy silver steel blade!)
+            for b in range(0, 22):
+                bx = 52 + int(b * 0.4)
+                by = 16 - b
+                fill_rect(bx - 2, by, bx + 3, by + 1, 210, 215, 225) # blade steel
+                set_pixel(bx + 4, by, 255, 255, 255) # razor sharp edge shine
+                set_pixel(bx - 3, by, 120, 125, 135) # blade back spine
+        elif state == "shout":
+            # Ready to fight battle pose with raised muscular arms
+            fill_rect(12, 22, 18, 42, shirt_r, shirt_g, shirt_b)
+            fill_circle(15, 20, 4, skin_r, skin_g, skin_b)
+            fill_rect(46, 22, 52, 42, shirt_r, shirt_g, shirt_b)
+            fill_circle(49, 20, 4, skin_r, skin_g, skin_b)
+        else:
+            # Athletic stance with toned arms
+            fill_rect(14, 33, 19, 47, shirt_r, shirt_g, skin_r) # muscular forearm
+            fill_circle(16, 49, 4, skin_r, skin_g, skin_b)
+            fill_rect(45, 33, 50, 47, shirt_r, shirt_g, skin_r)
+            fill_circle(48, 49, 4, skin_r, skin_g, skin_b)
+
+        # Head (Strong jaw, athletic build)
+        fill_circle(32, 19, 12, skin_r, skin_g, skin_b)
+        # Short dark buzzcut fade
+        for y in range(8, 17):
+            for x in range(21, 43):
+                if (x - 32)**2 + (y - 17)**2 <= 12**2 and y <= 15:
+                    set_pixel(x, y, hair_r, hair_g, hair_b)
+        fill_rect(22, 13, 24, 17, hair_r, hair_g, hair_b) # sideburns
+        fill_rect(40, 13, 42, 17, hair_r, hair_g, hair_b)
+
+        # Face
+        if state in ("shout", "machete"):
+            # Fierce battle roar
+            fill_circle(32, 24, 5, 160, 30, 30)
+            fill_rect(30, 21, 34, 23, 255, 255, 255)
+            # Focused sharp eyes
+            fill_rect(26, 17, 29, 18, 30, 25, 20)
+            fill_rect(35, 17, 38, 18, 30, 25, 20)
+        else:
+            # Confident tough look
+            fill_rect(26, 18, 29, 19, 30, 25, 20)
+            fill_rect(35, 18, 38, 19, 30, 25, 20)
+            fill_rect(29, 24, 35, 25, 170, 75, 75)
+
+    elif char_type == "policeman":
+        # POLICEMAN (SZKIEŁ): Granatowy mundur, czapka garnizonowa z orzełkiem, kamizelka odblaskowa POLICJA, pała policyjna tonfa
+        uni_r, uni_g, uni_b = 24, 38, 72 # navy blue police uniform
+        pants_r, pants_g, pants_b = 20, 32, 60 # navy pants
+        boot_r, boot_g, boot_b = 15, 15, 18 # black tactical boots
+        vest_r, vest_g, vest_b = 210, 235, 45 # neon yellow reflective vest
+
+        # Legs
+        if state == "walk" or state == "chase":
+            fill_rect(22, 54, 28, 71, pants_r, pants_g, pants_b)
+            fill_rect(36, 54, 42, 67, pants_r, pants_g, pants_b)
+            fill_rect(20, 69, 28, 75, boot_r, boot_g, boot_b)
+            fill_rect(36, 65, 44, 71, boot_r, boot_g, boot_b)
+        elif state == "flee":
+            # Running away legs spread in panic
+            fill_rect(18, 54, 25, 68, pants_r, pants_g, pants_b)
+            fill_rect(38, 54, 45, 71, pants_r, pants_g, pants_b)
+            fill_rect(16, 67, 24, 73, boot_r, boot_g, boot_b)
+            fill_rect(38, 70, 46, 75, boot_r, boot_g, boot_b)
+        else:
+            fill_rect(23, 54, 29, 71, pants_r, pants_g, pants_b)
+            fill_rect(35, 54, 41, 71, pants_r, pants_g, pants_b)
+            fill_rect(21, 70, 29, 75, boot_r, boot_g, boot_b)
+            fill_rect(35, 70, 43, 75, boot_r, boot_g, boot_b)
+
+        # Torso (Navy uniform with neon yellow reflective vest)
+        fill_rect(19, 31, 45, 54, uni_r, uni_g, uni_b)
+        fill_rect(21, 34, 43, 49, vest_r, vest_g, vest_b) # bright vest
+        # Silver reflective strip across vest
+        fill_rect(21, 41, 43, 43, 230, 235, 240)
+        # "POLICJA" dark badge text block
+        fill_rect(26, 36, 38, 38, 20, 30, 60)
+
+        # Arms with Police Baton (Tonfa)
+        if state == "flee":
+            # Panicking arms raised up screaming
+            fill_rect(11, 20, 17, 40, uni_r, uni_g, uni_b)
+            fill_circle(14, 18, 4, skin_r, skin_g, skin_b)
+            fill_rect(47, 20, 53, 40, uni_r, uni_g, uni_b)
+            fill_circle(50, 18, 4, skin_r, skin_g, skin_b)
+            # Sweat drops flying 💦
+            fill_circle(10, 14, 2, 80, 180, 240)
+            fill_circle(54, 14, 2, 80, 180, 240)
+        else:
+            # Holding baton ready to strike
+            fill_rect(14, 32, 19, 47, uni_r, uni_g, uni_b)
+            fill_circle(16, 49, 4, skin_r, skin_g, skin_b)
+            # Right arm extended with black police baton
+            fill_rect(45, 33, 51, 45, uni_r, uni_g, uni_b)
+            fill_circle(52, 45, 4, skin_r, skin_g, skin_b)
+            # Black Tonfa Baton
+            fill_rect(52, 33, 55, 57, 18, 18, 22) # baton body
+            fill_rect(48, 44, 52, 47, 18, 18, 22) # tonfa side handle
+
+        # Head & Police Officer Cap (Czapka garnizonowa)
+        fill_circle(32, 20, 11, skin_r, skin_g, skin_b)
+
+        # Police Cap Crown & White Ribbon with Silver Eagle Badge
+        fill_rect(22, 11, 42, 15, uni_r, uni_g, uni_b) # cap top
+        fill_circle(32, 11, 10, uni_r, uni_g, uni_b)
+        fill_rect(21, 14, 43, 16, 230, 235, 245) # white cap band
+        # Polish Eagle emblem
+        fill_rect(31, 13, 33, 16, 255, 215, 0) # gold/silver eagle
+        # Black Shiny Visor / Daszek
+        fill_rect(20, 17, 44, 18, 10, 10, 15)
+
+        # Face
+        if state == "flee":
+            # Terrified screaming face
+            fill_circle(32, 24, 5, 170, 30, 30)
+            fill_circle(27, 21, 2, 255, 255, 255)
+            set_pixel(27, 21, 0, 0, 0)
+            fill_circle(37, 21, 2, 255, 255, 255)
+            set_pixel(37, 21, 0, 0, 0)
+        else:
+            # Stern cop face with moustache
+            fill_rect(27, 20, 29, 21, 40, 40, 50)
+            fill_rect(35, 20, 37, 21, 40, 40, 50)
+            fill_rect(28, 24, 36, 25, 40, 30, 20) # police moustache!
+            set_pixel(32, 26, 140, 60, 60)
+
     return pixels
 
 def create_item_sprite(item_type="mleko"):
@@ -324,11 +497,22 @@ def main():
     write_png(os.path.join(target_dir, "wolffidzie.png"), 64, 80, create_character_sprite("wolff", "walk"))
     write_png(os.path.join(target_dir, "wolffkrzyczy.png"), 64, 80, create_character_sprite("wolff", "shout"))
 
-    # 4. Item sprites
+    # 4. Filip Rzepa sprites (Własna postać 2D)
+    write_png(os.path.join(target_dir, "rzepa.png"), 64, 80, create_character_sprite("rzepa", "idle"))
+    write_png(os.path.join(target_dir, "rzepaidzie.png"), 64, 80, create_character_sprite("rzepa", "walk"))
+    write_png(os.path.join(target_dir, "rzepakrzyczy.png"), 64, 80, create_character_sprite("rzepa", "shout"))
+    write_png(os.path.join(target_dir, "rzepamaczeta.png"), 64, 80, create_character_sprite("rzepa", "machete"))
+
+    # 5. Police sprites (Szkieły)
+    write_png(os.path.join(target_dir, "policeman.png"), 64, 80, create_character_sprite("policeman", "idle"))
+    write_png(os.path.join(target_dir, "policemanidzie.png"), 64, 80, create_character_sprite("policeman", "walk"))
+    write_png(os.path.join(target_dir, "policemanucieka.png"), 64, 80, create_character_sprite("policeman", "flee"))
+
+    # 6. Item sprites
     write_png(os.path.join(target_dir, "mleko.png"), 32, 32, create_item_sprite("mleko"))
     write_png(os.path.join(target_dir, "kleszcz.png"), 32, 32, create_item_sprite("kleszcz"))
 
-    print("Wszystkie nowe sprite'y postaci i przedmiotów wygenerowane pomyślnie!")
+    print("Wszystkie nowe sprite'y postaci, Filipa Rzepy, Policjantów i przedmiotów wygenerowane pomyślnie!")
 
 if __name__ == "__main__":
     main()

@@ -601,6 +601,77 @@ class SoundManager {
     osc.start(t);
     osc.stop(t + 0.25);
   }
+
+  // Policeman comic scream when slashed by machete
+  playCopScream() {
+    if (this.isMuted || !this.audioCtx) return;
+    this.resumeContext();
+
+    const t = this.audioCtx.currentTime;
+    const osc = this.audioCtx.createOscillator();
+    const gain = this.audioCtx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(450, t);
+    osc.frequency.linearRampToValueAtTime(850, t + 0.12);
+    osc.frequency.exponentialRampToValueAtTime(220, t + 0.45);
+
+    gain.gain.setValueAtTime(0.55 * this.volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.45);
+
+    osc.connect(gain);
+    gain.connect(this.audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + 0.45);
+  }
+
+  // Police baton hit thud
+  playBatonHit() {
+    if (this.isMuted || !this.audioCtx) return;
+    this.resumeContext();
+
+    const t = this.audioCtx.currentTime;
+    const osc = this.audioCtx.createOscillator();
+    const gain = this.audioCtx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(220, t);
+    osc.frequency.exponentialRampToValueAtTime(50, t + 0.18);
+
+    gain.gain.setValueAtTime(0.65 * this.volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+
+    osc.connect(gain);
+    gain.connect(this.audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + 0.2);
+  }
+
+  // Police whistle blast
+  playCopWhistle() {
+    if (this.isMuted || !this.audioCtx) return;
+    this.resumeContext();
+
+    const t = this.audioCtx.currentTime;
+    [0, 0.15].forEach(delay => {
+      const wt = t + delay;
+      const osc = this.audioCtx.createOscillator();
+      const gain = this.audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(2400, wt);
+      osc.frequency.linearRampToValueAtTime(2800, wt + 0.05);
+      osc.frequency.linearRampToValueAtTime(2400, wt + 0.1);
+
+      gain.gain.setValueAtTime(0.35 * this.volume, wt);
+      gain.gain.exponentialRampToValueAtTime(0.01, wt + 0.12);
+
+      osc.connect(gain);
+      gain.connect(this.audioCtx.destination);
+      osc.start(wt);
+      osc.stop(wt + 0.12);
+    });
+  }
 }
 
 window.soundManager = new SoundManager();

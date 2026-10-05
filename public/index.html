@@ -110,6 +110,7 @@
                 <p class="char-desc">Umięśniony fighter w koszulce Octagon/Pitbull z torbą (Max 1 w lobby!).</p>
                 <div class="char-power">
                   <span class="power-label">⚡ SUPERMOCE:</span>
+                  <span class="power-name">🪑 [X] Rzut krzesłem (wzywa policję)</span>
                   <span class="power-name">🌶️ [Q] Gaz 500ml (3s stun+blackout)</span>
                   <span class="power-name">🗡️ [V] Maczeta (rozpędza policję)</span>
                 </div>
@@ -126,11 +127,12 @@
             <div class="mode-select">
               <label for="gameModeSelect">Tryb lekcji:</label>
               <select id="gameModeSelect">
-                <option value="normal" selected>🏫 Normalna Lekcja (5 min, siedzisz w ławce, wstajesz [Z])</option>
-                <option value="classic">Klasyczny Szkolny Chaos (90s)</option>
-                <option value="hardcore">Szybka Kartkówka (60s, czujna Halbina)</option>
-                <option value="boss">💀 BOSS FIGHT: Starcie z Mega Halbiną! (120s)</option>
+                <option value="normal" selected>🏫 Normalna Lekcja (5 min)</option>
+                <option value="classic">⚡ Klasyczny Szkolny Chaos (90s)</option>
+                <option value="hardcore">📝 Szybka Kartkówka (60s)</option>
+                <option value="boss">💀 BOSS FIGHT: Mega Halbina (120s)</option>
               </select>
+              <small id="modeHintText" class="mode-hint">🏫 Rozgrywka w ławkach – wstajesz z krzesła klawiszem [Z].</small>
             </div>
             <button id="btnCreateRoom" class="btn btn-primary btn-large">
               🏫 Stwórz Lekcję
@@ -156,7 +158,7 @@
           <h4>📜 Zasady Przetrwania na Lekcji:</h4>
           <ul>
             <li>🏫 <strong>Normalna Lekcja (5 min)</strong>: Zaczynasz usadzony w swojej ławce! Aby chodzić, musisz <strong>wstać [Z]</strong>. Stanie poza ławką, gdy Halbina patrzy = Uwaga!</li>
-            <li>🪑 <strong>Rzut krzesłem [X]</strong>: Złap krzesło i rzuć w Halbinę! Halbina natychmiast <strong>dzwoni po policję</strong>!</li>
+            <li>🪑 <strong>Rzut krzesłem [X]</strong>: TYLKO Filip Rzepa może cisnąć krzesłem w Halbinę! Halbina natychmiast <strong>dzwoni po policję</strong>!</li>
             <li>🗡️ <strong>Filip Rzepa & Maczeta [V]</strong>: Gdy wbijają szkieły po rzucie krzesłem, TYLKO Filip Rzepa może ich rozgonić maczetą [V]! Używa też <strong>Gazu pieprzowego 500ml [Q]</strong>, ogłuszając i oślepiając Halbinę na 3 sekundy! (Tylko 1 Rzepa w lobby).</li>
             <li>✈️ <strong>Samolot z papieru [F]</strong>: Dostępny wyłącznie w trybie <strong>BOSS FIGHT</strong>!</li>
             <li>👀 <strong>Blackout dla gracza Halbina</strong>: Pisząc na tablicy nie widzi sali, a po obrocie widzi wyłącznie swój stożek wzroku – reszta to czarna mgła!</li>

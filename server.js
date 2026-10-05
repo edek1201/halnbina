@@ -238,6 +238,7 @@ class Room {
     this.policeActiveTimer = 0;
     this.policeRaidPending = false; // 8s alert after chair throw
     this.policeRaidTimer = 0;
+    this.policeOfficers = []; // Physical police officers running in
     this.projectiles = []; // paper airplanes, kleszcze, chairs, pepper spray, acid flasks, exams
     this.smokeClouds = []; // vape smoke clouds
 
@@ -252,6 +253,10 @@ class Room {
 
   startPopQuiz(targetStudent) {
     if (this.activeQuiz || !targetStudent || targetStudent.isEliminated || targetStudent.role !== 'STUDENT') return false;
+    // Exclusive events: do not trigger quiz during police raid or stun
+    if (this.policeRaidPending || (this.policeOfficers && this.policeOfficers.length > 0) || this.teacherStunTimer > 0) {
+      return false;
+    }
 
     const q = CHEMISTRY_QUIZ_QUESTIONS[Math.floor(Math.random() * CHEMISTRY_QUIZ_QUESTIONS.length)];
     const indices = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
@@ -276,7 +281,7 @@ class Room {
       spitCooldown: 0
     };
 
-    this.popQuizCooldown = 18.0;
+    this.popQuizCooldown = 35.0; // 35 seconds cooldown so quizzes don't spam
 
     const speech = "Miarka się przebrała skurwysynie jebany do odpowiedzi!";
     this.setTeacherSpeech(speech, 5.0);
@@ -492,6 +497,9 @@ class Room {
 
     this.smokeClouds = [];
     this.projectiles = [];
+    this.policeOfficers = [];
+    this.policeRaidPending = false;
+    this.policeRaidTimer = 0;
 
     // Start game loop
     this.lastTickTime = Date.now();
@@ -634,15 +642,123 @@ class Room {
       if (this.policeRaidTimer <= 0) {
         this.policeRaidPending = false;
         this.policeRaidTimer = 0;
-        // Police arrived! Class was not rescued by Filip Rzepa with machete
-        this.triggerPoliceRaid();
-        const raidMsg = '🚨 SZKIEŁY WPAROWAŁY DO SALI! Nikt nie rozgonił policji maczetą! Uczniowie dostają uwagi!';
-        this.roundLogs.unshift(raidMsg);
-        this.players.forEach(p => {
-          if (p.role === 'STUDENT' && !p.isEliminated && !p.isDucking && !p.isInSmoke) {
-            this.penalizeStudent(p, 'POLICE_RAID');
+        this.spawnPoliceOfficers();
+      }
+    }
+
+    // Police Officers update (AI chasing students & fleeing when defeated)
+    // Police Officers update (AI chasing students & fleeing/leaving when resolved)
+    if (this.policeOfficers && this.policeOfficers.length > 0) {
+      const activeStudents = Array.from(this.players.values()).filter(p => p.role === 'STUDENT' && !p.isEliminated);
+      const rzepaStudent = activeStudents.find(p => p.character === 'rzepa');
+
+      // Teacher is paralyzed in shock observing the police raid and cannot act
+      this.teacher.state = 'SHOCKED';
+      this.teacher.speechText = '👀 (W szoku obserwuje interwencję policji...)';
+      this.teacher.stateTimer = 5.0;
+
+      for (let i = this.policeOfficers.length - 1; i >= 0; i--) {
+        const cop = this.policeOfficers[i];
+
+        if (cop.speechTimer > 0) {
+          cop.speechTimer -= dt;
+          if (cop.speechTimer <= 0) cop.speech = '';
+        }
+        if (cop.tackleCooldown > 0) cop.tackleCooldown -= dt;
+        if (cop.hitTimer > 0) cop.hitTimer -= dt;
+
+        if (cop.state === 'FLEEING' || cop.state === 'LEAVING') {
+          // Sprint out of classroom towards door (x = 30)
+          cop.x -= cop.speed * dt;
+          if (cop.x <= 30) {
+            this.policeOfficers.splice(i, 1);
+            continue;
           }
-        });
+        } else {
+          // CHASING: Police primarily targets Filip Rzepa with machete! If Rzepa is ducking/in smoke, chases nearest student
+          let target = null;
+          if (rzepaStudent && !rzepaStudent.isDucking && !rzepaStudent.isInSmoke) {
+            target = rzepaStudent;
+          } else {
+            let minDist = 99999;
+            for (const s of activeStudents) {
+              const dist = Math.hypot(cop.x - s.x, cop.y - s.y);
+              const prioDist = s.isDucking ? dist + 500 : dist;
+              if (prioDist < minDist) {
+                minDist = prioDist;
+                target = s;
+              }
+            }
+          }
+
+          if (target) {
+            const dx = target.x - cop.x;
+            const dy = target.y - cop.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist > 15) {
+              cop.x += (dx / dist) * cop.speed * dt;
+              cop.y += (dy / dist) * cop.speed * dt;
+            }
+
+            // Tackling / hitting student with baton
+            if (dist <= 44 && !target.isDucking && !target.isInSmoke && cop.tackleCooldown <= 0 && target.immunityTimer <= 0) {
+              cop.tackleCooldown = 3.5;
+
+              if (target.character === 'rzepa') {
+                // FILIP RZEPA CAUGHT BY POLICE!
+                cop.speech = 'MAMY GO! RZUĆ MACZETĘ! NA GLEBĘ!';
+                cop.speechTimer = 3.5;
+
+                this.penalizeStudent(target, 'POLICE_BATON');
+
+                const caughtMsg = `🚨 POLICJA SPACYFIKOWAŁA FILIPA RZEPĘ! ${cop.name} obezwładnił Rzepę pałką! Interwencja zakończona!`;
+                this.roundLogs.unshift(caughtMsg);
+
+                io.to(this.code).emit('police_caught_rzepa', {
+                  copName: cop.name,
+                  rzepaName: target.name,
+                  message: caughtMsg
+                });
+
+                // All cops wrap up and leave the classroom
+                this.policeOfficers.forEach(c => {
+                  c.state = 'LEAVING';
+                  c.speed = 220;
+                  c.speech = 'Interwencja zakończona! Wychodzimy!';
+                  c.speechTimer = 3.0;
+                });
+
+                // Teacher recovers after police leaves
+                setTimeout(() => {
+                  if (this.state === 'IN_GAME') {
+                    this.teacher.state = 'BOARD';
+                    this.teacher.stateTimer = 5.0;
+                    this.setTeacherSpeech("I bardzo dobrze! Koniec cyrku, wracamy do lekcji!", 4.0);
+                  }
+                }, 1600);
+              } else {
+                cop.speech = 'MASZ UWAGĘ! NA GLEBĘ!';
+                cop.speechTimer = 2.0;
+
+                this.penalizeStudent(target, 'POLICE_BATON');
+                io.to(this.code).emit('cop_tackled_student', {
+                  copName: cop.name,
+                  studentId: target.id,
+                  studentName: target.name
+                });
+              }
+            }
+          }
+        }
+      }
+
+      // Check if all police officers left the classroom
+      if (this.policeOfficers.length === 0 && this.policeActiveTimer > 0) {
+        this.policeActiveTimer = 0;
+        io.to(this.code).emit('police_raid_ended');
+        this.teacher.state = 'BOARD';
+        this.teacher.stateTimer = 5.0;
       }
     }
 
@@ -728,13 +844,16 @@ class Room {
           io.to(this.code).emit('pop_quiz_result', { success: false, studentName: student.name, message: failMsg });
         }
       }
-    } else if (this.teacher.isAI && !this.boss.isBossMode && this.teacher.anger >= 50 && this.popQuizCooldown <= 0) {
-      // AI Halbina triggers pop quiz when anger >= 50%
-      if (Math.random() < 0.25 * dt) {
-        const activeStudents = Array.from(this.players.values()).filter(p => p.role === 'STUDENT' && !p.isEliminated);
-        if (activeStudents.length > 0) {
-          const target = activeStudents[Math.floor(Math.random() * activeStudents.length)];
-          this.startPopQuiz(target);
+    } else if (this.teacher.isAI && !this.boss.isBossMode && this.teacher.anger >= 65 && this.popQuizCooldown <= 0 && !this.activeQuiz) {
+      // AI Halbina triggers pop quiz only if anger is high and NO police raid is happening
+      const hasPolice = this.policeRaidPending || (this.policeOfficers && this.policeOfficers.length > 0);
+      if (!hasPolice && this.teacherStunTimer <= 0) {
+        if (Math.random() < 0.05 * dt) {
+          const activeStudents = Array.from(this.players.values()).filter(p => p.role === 'STUDENT' && !p.isEliminated);
+          if (activeStudents.length > 0) {
+            const target = activeStudents[Math.floor(Math.random() * activeStudents.length)];
+            this.startPopQuiz(target);
+          }
         }
       }
     }
@@ -1011,24 +1130,27 @@ class Room {
       if (this.teacher.stateTimer <= 0) {
         if (this.teacher.state === 'BOARD') {
           this.teacher.state = 'TURNING';
-          this.teacher.stateTimer = 0.8;
+          this.teacher.stateTimer = 2.2; // 2.2 seconds clear reaction window with warning sound & !
           this.teacher.inspectionsThisTurn = 0;
           io.to(this.code).emit('teacher_warning', { x: this.teacher.x, y: this.teacher.y });
         } else if (this.teacher.state === 'TURNING') {
           this.teacher.state = 'CLASS';
-          this.teacher.stateTimer = 2.2 + Math.random() * 2.2;
+          this.teacher.stateTimer = 2.6 + Math.random() * 1.0; // Looks at class for 2.6-3.6 seconds
           this.teacher.inspectionsThisTurn = 0;
           io.to(this.code).emit('teacher_turned', { state: 'CLASS' });
         } else if (this.teacher.state === 'CLASS') {
           this.teacher.state = 'BOARD';
-          this.teacher.stateTimer = 3.5 + Math.random() * 3.0;
+          const baseBoardTime = (this.mode === 'normal') ? 6.5 : 5.0;
+          this.teacher.stateTimer = baseBoardTime + Math.random() * 3.0; // 5.0-9.5s safe writing window
           this.teacher.inspectionsThisTurn = 0;
           io.to(this.code).emit('teacher_turned', { state: 'BOARD' });
         }
       }
 
-      // AI Halbina Random Desk Inspection (checks 1 student's assigned desk)
-      if (this.teacher.state === 'CLASS' && this.teacher.inspectionsThisTurn < 1 && this.teacher.stateTimer <= 1.4) {
+      // AI Halbina Random Desk Inspection (checks 1 student's assigned desk - ONLY when NO police raid)
+      const hasPoliceRaidActive = (this.policeOfficers && this.policeOfficers.some(c => c.state !== 'FLEEING' && c.state !== 'LEAVING')) || this.policeRaidPending;
+
+      if (!hasPoliceRaidActive && this.teacher.state === 'CLASS' && this.teacher.inspectionsThisTurn < 1 && this.teacher.stateTimer <= 1.4) {
         if (Math.random() < 0.15) {
           const activeStudents = Array.from(this.players.values()).filter(s => s.role === 'STUDENT' && !s.isEliminated);
           if (activeStudents.length > 0) {
@@ -1048,7 +1170,8 @@ class Room {
     let activeStudentsCount = 0;
     let eliminatedStudentsCount = 0;
 
-    const teacherIsLooking = !this.boss.isBossMode && this.teacherStunTimer <= 0 && (this.teacher.state === 'CLASS' || this.teacher.state === 'RAGE');
+    const hasPoliceRaidActive = (this.policeOfficers && this.policeOfficers.some(c => c.state !== 'FLEEING' && c.state !== 'LEAVING')) || this.policeRaidPending;
+    const teacherIsLooking = !this.boss.isBossMode && !hasPoliceRaidActive && this.teacherStunTimer <= 0 && (this.teacher.state === 'CLASS' || this.teacher.state === 'RAGE');
 
     this.players.forEach(p => {
       if (p.role === 'TEACHER') {
@@ -1071,6 +1194,7 @@ class Room {
       if (p.paperCooldown > 0) p.paperCooldown -= dt;
       if (p.chairCooldown > 0) p.chairCooldown -= dt;
       if (p.speedBoostTimer > 0) p.speedBoostTimer -= dt;
+      if (p.macheteSwingTimer > 0) p.macheteSwingTimer -= dt;
       if (p.abilityCooldowns.ability1 > 0) p.abilityCooldowns.ability1 -= dt;
       if (p.abilityCooldowns.ability2 > 0) p.abilityCooldowns.ability2 -= dt;
 
@@ -1205,6 +1329,18 @@ class Room {
         targetY: pr.targetY,
         t: pr.t
       })),
+      policeOfficers: this.policeOfficers ? this.policeOfficers.map(c => ({
+        id: c.id,
+        name: c.name,
+        x: Math.round(c.x),
+        y: Math.round(c.y),
+        hp: c.hp,
+        maxHp: c.maxHp,
+        state: c.state,
+        speech: c.speech || '',
+        hitTimer: (c.hitTimer || 0) > 0,
+        speed: c.speed
+      })) : [],
       players: Array.from(this.players.values()).map(p => ({
         id: p.id,
         character: p.character,
@@ -1216,6 +1352,7 @@ class Room {
         chairCooldown: Math.ceil(p.chairCooldown || 0),
         isMoving: p.isMoving,
         isShouting: p.isShouting,
+        isSwingingMachete: (p.macheteSwingTimer || 0) > 0,
         shoutText: p.shoutText,
         isDucking: p.isDucking,
         isCheating: p.isCheating,
@@ -1255,6 +1392,8 @@ class Room {
       logMsg = `🚨 Halbina sprawdziła ${student.name}: Siedzi na złej ławce (powinien być w ${assignedLabel})! (+1 Uwaga)`;
     } else if (reason === 'WALKING_IN_CLASS') {
       logMsg = `⚠️ Halbina przyłapała ${student.name}: Wstał z ławki i chodzi po klasie w trakcie lekcji! (+1 Uwaga)`;
+    } else if (reason === 'POLICE_BATON') {
+      logMsg = `🚨 Szkieł spacyfikował ${student.name} pałką policyjną! (+1 Uwaga)`;
     } else if (reason === 'POLICE_RAID') {
       logMsg = `🚨 ${student.name} został spisany przez policję podczas nalotu! (+1 Uwaga)`;
     } else if (reason === 'ACID') {
@@ -1296,31 +1435,193 @@ class Room {
     }
   }
 
-  triggerPoliceRaid() {
-    this.policeActiveTimer = 7.5; // 7.5 seconds of flashing police sirens
-    this.policeShoutCount = 0;
+  spawnPoliceOfficers() {
+    this.policeActiveTimer = 25.0; // 25s max
+    this.policeOfficers = [
+      {
+        id: 'cop_1',
+        name: 'Sierżant Kleszczyński',
+        x: 60,
+        y: 280,
+        hp: 2,
+        maxHp: 2,
+        speed: 135,
+        state: 'CHASING',
+        speech: 'STÓJ! POLICJA!',
+        speechTimer: 3.5,
+        targetId: null,
+        tackleCooldown: 0,
+        hitTimer: 0
+      },
+      {
+        id: 'cop_2',
+        name: 'Aspirant Szkiieł',
+        x: 60,
+        y: 430,
+        hp: 2,
+        maxHp: 2,
+        speed: 125,
+        state: 'CHASING',
+        speech: 'GLEBA WSZYSCY!',
+        speechTimer: 3.5,
+        targetId: null,
+        tackleCooldown: 0,
+        hitTimer: 0
+      },
+      {
+        id: 'cop_3',
+        name: 'Posterunkowy Bagno',
+        x: 60,
+        y: 570,
+        hp: 2,
+        maxHp: 2,
+        speed: 140,
+        state: 'CHASING',
+        speech: 'KTO RZUCIŁ KRZESŁEM?!',
+        speechTimer: 3.5,
+        targetId: null,
+        tackleCooldown: 0,
+        hitTimer: 0
+      }
+    ];
+
     this.teacher.state = 'RAGE';
     this.teacher.rageTimer = 4.5;
     this.teacher.rageText = 'WY GŁUPIE SKURWYSYNY!';
     this.teacher.anger = 100;
 
-    const logMsg = '🚨 SZKIEŁY JADĄ! Syreny radiowozu pod oknami! Halbina wpadła w szał: "WY GŁUPIE SKURWYSYNY!"';
+    const logMsg = '🚨 SZKIEŁY WPAROWAŁY DO SALI! FILIP RZEPA – WYCIĄGNIJ MACZETĘ [V] I ROZJEB ICH!';
     this.roundLogs.unshift(logMsg);
 
     io.to(this.code).emit('police_raid_event', {
-      duration: 7.5,
+      duration: 25.0,
       rageText: 'WY GŁUPIE SKURWYSYNY!',
-      logMsg: logMsg
+      logMsg: logMsg,
+      copsCount: this.policeOfficers.length
     });
+  }
+
+  triggerPoliceRaid() {
+    this.policeShoutCount = 0;
+    this.spawnPoliceOfficers();
+  }
+
+  handleMacheteSwing(player, x, y) {
+    if (!player || player.character !== 'rzepa' || player.isEliminated) return;
+
+    player.isSwingingMachete = true;
+    player.macheteSwingTimer = 0.45;
+
+    io.to(this.code).emit('machete_swung', {
+      playerId: player.id,
+      playerName: player.name,
+      x: player.x,
+      y: player.y
+    });
+
+    // Check hit on police officers!
+    if (this.policeOfficers && this.policeOfficers.length > 0) {
+      let hitAny = false;
+
+      this.policeOfficers.forEach(cop => {
+        if (cop.state === 'FLEEING') return;
+
+        const dist = Math.hypot(player.x - cop.x, player.y - cop.y);
+        if (dist <= 90) { // Within machete range
+          hitAny = true;
+          cop.hp -= 1;
+          cop.hitTimer = 0.5;
+
+          // Knockback away from Filip Rzepa
+          const kx = (cop.x - player.x) || 1;
+          const ky = (cop.y - player.y) || 0;
+          const klen = Math.hypot(kx, ky);
+          cop.x = Math.max(50, Math.min(950, cop.x + (kx / klen) * 70));
+          cop.y = Math.max(140, Math.min(650, cop.y + (ky / klen) * 50));
+
+          if (cop.hp <= 0) {
+            cop.state = 'FLEEING';
+            cop.speed = 290;
+            cop.speech = 'AŁA! ON MA MACZETĘ! SPIERDALAMY!';
+            cop.speechTimer = 3.5;
+            player.points += 250;
+
+            const defeatMsg = `💥 ${player.name} (Filip Rzepa) ROZJEBAŁ MACZETĄ ${cop.name}! Szkieł ucieka w panice! (+250 pkt)`;
+            this.roundLogs.unshift(defeatMsg);
+            io.to(this.code).emit('cop_defeated', {
+              copId: cop.id,
+              copName: cop.name,
+              message: defeatMsg
+            });
+          } else {
+            cop.speech = 'AŁA! ON MA MACZETĘ!';
+            cop.speechTimer = 2.0;
+            player.points += 100;
+
+            io.to(this.code).emit('cop_hit', {
+              copId: cop.id,
+              copName: cop.name,
+              hp: cop.hp,
+              maxHp: cop.maxHp,
+              x: cop.x,
+              y: cop.y
+            });
+          }
+        }
+      });
+
+      // Check if all active cops are defeated or fleeing
+      const remainingCops = this.policeOfficers.filter(c => c.state !== 'FLEEING');
+      if (hitAny && remainingCops.length === 0) {
+        // ALL POLICE DEFEATED! CLASS RESCUED!
+        this.policeRaidPending = false;
+        player.points += 500;
+
+        const rescueMsg = `🗡️ ${player.name} (Filip Rzepa) POKONAŁ WSZYSTKIE SZKIEŁY MACZETĄ! Klasa uratowana przed policją! (+500 PKT)`;
+        this.roundLogs.unshift(rescueMsg);
+        io.to(this.code).emit('police_raid_rescued', {
+          heroId: player.id,
+          heroName: player.name,
+          message: rescueMsg
+        });
+      }
+    } else {
+      // Outside police raid: slash against teacher or boss
+      if (this.boss && this.boss.isBossMode) {
+        const distBoss = Math.hypot(player.x - this.teacher.x, player.y - this.teacher.y);
+        if (distBoss <= 100) {
+          this.damageBoss(80, player, 'MACZETA RZEPY');
+          const slashMsg = `🗡️ Filip Rzepa trafił Mega Halbinę MACZETĄ! -80 HP!`;
+          this.roundLogs.unshift(slashMsg);
+          io.to(this.code).emit('teacher_distracted', { message: slashMsg });
+        }
+      } else {
+        const distTeacher = Math.hypot(player.x - this.teacher.x, player.y - this.teacher.y);
+        if (distTeacher <= 95) {
+          this.teacher.state = 'BOARD';
+          this.teacher.stateTimer = 3.5;
+          const slashMsg = `🗡️ Filip Rzepa machnął maczetą przed nosem Halbiny! Halbina uciekła do tablicy!`;
+          this.roundLogs.unshift(slashMsg);
+          io.to(this.code).emit('teacher_distracted', { message: slashMsg });
+        }
+      }
+    }
   }
 
   handleShout(playerId, shoutText) {
     const player = this.players.get(playerId);
     if (!player || player.role !== 'STUDENT' || player.isEliminated) return;
 
+    // Cooldown: min. 3.5 seconds between shouts to prevent spamming
+    const now = Date.now();
+    if (player.lastShoutTime && (now - player.lastShoutTime) < 3500) {
+      return;
+    }
+    player.lastShoutTime = now;
+
     player.isShouting = true;
     player.shoutText = shoutText;
-    player.shoutEndTime = Date.now() + 1800; // 1.8 seconds duration
+    player.shoutEndTime = now + 1800; // 1.8 seconds speech bubble
     player.points += 150; // Award Respect points
 
     // Bonus points if shouting while teacher's back is turned!
@@ -1331,13 +1632,18 @@ class Room {
     // Check police triggers ("Szkieły jadą", "szkieły", "policja", "co jedzie", "surron")
     const isPolice = /szkieł|szkiel|policj|co jedzie|surron/i.test(shoutText);
     if (isPolice) {
-      this.policeShoutCount++;
-      this.teacher.anger = Math.min(100, this.teacher.anger + 35);
-      if (this.policeShoutCount >= 3 && this.policeActiveTimer <= 0) {
-        this.triggerPoliceRaid();
+      const policeBlocked = this.activeQuiz || this.policeRaidPending || (this.policeOfficers && this.policeOfficers.length > 0);
+      if (!policeBlocked) {
+        this.policeShoutCount++;
+        this.teacher.anger = Math.min(100, this.teacher.anger + 12);
+        if (this.policeShoutCount >= 5 && this.policeActiveTimer <= 0) {
+          this.triggerPoliceRaid();
+        }
+      } else {
+        this.teacher.anger = Math.min(100, this.teacher.anger + 6);
       }
     } else {
-      this.teacher.anger = Math.min(100, this.teacher.anger + 12);
+      this.teacher.anger = Math.min(100, this.teacher.anger + 6);
     }
 
     // Refresh shout options for this student
@@ -1352,9 +1658,10 @@ class Room {
       y: player.y
     });
 
-    // Send new options back to that player
+    // Send new options back to that player with 3.5s cooldown timer
     io.to(player.id).emit('shout_options_updated', {
-      options: player.shoutOptions
+      options: player.shoutOptions,
+      cooldown: 3.5
     });
   }
 
@@ -1448,6 +1755,13 @@ io.on('connection', (socket) => {
 
     if (room.players.size >= 12) {
       return callback({ success: false, message: 'Klasa jest już pełna (max 12 uczniów)!' });
+    }
+
+    if (character === 'rzepa') {
+      const rzepaTaken = Array.from(room.players.values()).some(p => p.character === 'rzepa');
+      if (rzepaTaken) {
+        return callback({ success: false, message: 'Filip Rzepa jest już wybrany w tej klasie (może być tylko jeden w lobby)!' });
+      }
     }
 
     const player = room.addPlayer(socket.id, character);
@@ -1610,9 +1924,23 @@ io.on('connection', (socket) => {
     if (!currentRoom || currentRoom.state !== 'IN_GAME') return;
     const player = currentRoom.players.get(socket.id);
     if (!player || player.role !== 'STUDENT' || player.isEliminated) return;
+
+    // Strict constraint: Only Filip Rzepa can throw chairs!
+    if (player.character !== 'rzepa') {
+      return socket.emit('action_failed', { message: 'Tylko Filip Rzepa może rzucić krzesłem w Halbinę!' });
+    }
+
     if (player.chairCooldown > 0) return;
 
-    player.chairCooldown = 15.0; // 15 seconds cooldown
+    // Exclusive events: Cannot throw chair during pop quiz or active police raid
+    if (currentRoom.activeQuiz) {
+      return socket.emit('action_failed', { message: 'Nie możesz rzucić krzesłem w trakcie kartkówki!' });
+    }
+    if (currentRoom.policeRaidPending || (currentRoom.policeOfficers && currentRoom.policeOfficers.length > 0)) {
+      return socket.emit('action_failed', { message: 'Policja już jest w klasie!' });
+    }
+
+    player.chairCooldown = 20.0; // 20 seconds cooldown
 
     const proj = {
       id: 'chair_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
@@ -1835,52 +2163,37 @@ io.on('connection', (socket) => {
         projectile: proj
       });
     }
-    // Filip Rzepa [V]: Maczeta (ratuje klasę przed policją po rzucie krzesłem)
+    // Filip Rzepa [V]: Maczeta (aktywne uderzenie maczetą)
     else if (abilityName === 'machete' && player.character === 'rzepa') {
+      const hasPolice = currentRoom.policeOfficers && currentRoom.policeOfficers.some(c => c.state !== 'FLEEING');
       if (player.abilityCooldowns.ability2 > 0) return;
-      player.abilityCooldowns.ability2 = 20.0;
+      player.abilityCooldowns.ability2 = hasPolice ? 0.5 : 15.0;
 
-      if (currentRoom.policeRaidPending) {
-        // Rescues the classroom from impending police raid!
-        currentRoom.policeRaidPending = false;
-        currentRoom.policeRaidTimer = 0;
-        player.points += 500;
-        const rescueMsg = `🗡️ ${player.name} (Filip Rzepa) WPAROWAŁ Z MACZETĄ I ROZGONIŁ SZKIEŁY! Klasa uratowana przed policją! (+500 pkt)`;
-        currentRoom.roundLogs.unshift(rescueMsg);
-        io.to(currentRoom.code).emit('police_raid_rescued', {
-          heroId: player.id,
-          heroName: player.name,
-          message: rescueMsg
-        });
-      } else {
-        // Outside police raid: slash attacks teacher / boss
-        if (currentRoom.boss && currentRoom.boss.isBossMode) {
-          currentRoom.damageBoss(80, player, 'MACZETA RZEPY');
-          const slashMsg = `🗡️ Filip Rzepa zaatakował Mega Halbinę maczetą! Potężne 80 DMG!`;
-          currentRoom.roundLogs.unshift(slashMsg);
-          io.to(currentRoom.code).emit('teacher_distracted', { message: slashMsg });
-        } else {
-          currentRoom.teacher.state = 'BOARD';
-          currentRoom.teacher.stateTimer = 3.2;
-          const slashMsg = `🗡️ Filip Rzepa groźnie macha maczetą! Halbina kuli się przy tablicy ze strachu!`;
-          currentRoom.roundLogs.unshift(slashMsg);
-          io.to(currentRoom.code).emit('teacher_distracted', { message: slashMsg });
-        }
-      }
-
-      io.to(currentRoom.code).emit('ability_used', {
-        playerId: player.id,
-        playerName: player.name,
-        ability: 'machete',
-        message: `🗡️ Filip Rzepa użył maczety!`
-      });
+      currentRoom.handleMacheteSwing(player, player.x, player.y);
     }
+  });
+
+  // Dedicated socket event for Filip Rzepa swinging his machete
+  socket.on('student_machete_swing', ({ x, y }) => {
+    if (!currentRoom || currentRoom.state !== 'IN_GAME') return;
+    const player = currentRoom.players.get(socket.id);
+    if (!player || player.role !== 'STUDENT' || player.character !== 'rzepa' || player.isEliminated) return;
+
+    const hasPolice = currentRoom.policeOfficers && currentRoom.policeOfficers.some(c => c.state !== 'FLEEING');
+    if (player.abilityCooldowns.ability2 > 0) return;
+    player.abilityCooldowns.ability2 = hasPolice ? 0.5 : 15.0;
+
+    currentRoom.handleMacheteSwing(player, x || player.x, y || player.y);
   });
 
   // Human Halbina controls (Turns for 2s, 5s cooldown)
   socket.on('teacher_toggle_look', () => {
     if (!currentRoom || currentRoom.state !== 'IN_GAME') return;
     if (currentRoom.teacherId !== socket.id) return;
+    const hasPolice = (currentRoom.policeOfficers && currentRoom.policeOfficers.some(c => c.state !== 'FLEEING' && c.state !== 'LEAVING')) || currentRoom.policeRaidPending;
+    if (hasPolice) {
+      return socket.emit('inspection_failed', { message: 'Trwa interwencja policji! Możesz tylko bezradnie obserwować walkę!' });
+    }
     if (currentRoom.teacherStunTimer > 0) {
       return socket.emit('inspection_failed', { message: 'Jesteś ogłuszona gazem pieprzowym! Nic nie widzisz!' });
     }
@@ -1901,12 +2214,16 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Human Halbina triggers pop quiz (When anger >= 50%)
+  // Human Halbina triggers pop quiz (When anger >= 65%)
   socket.on('teacher_trigger_quiz', ({ targetStudentId }) => {
     if (!currentRoom || currentRoom.state !== 'IN_GAME') return;
     if (currentRoom.teacherId !== socket.id) return;
-    if (currentRoom.teacher.anger < 50) {
-      return socket.emit('inspection_failed', { message: 'Potrzebujesz min. 50% wkurwienia, aby wziąć ucznia do odpowiedzi!' });
+    const hasPolice = (currentRoom.policeOfficers && currentRoom.policeOfficers.some(c => c.state !== 'FLEEING' && c.state !== 'LEAVING')) || currentRoom.policeRaidPending;
+    if (hasPolice) {
+      return socket.emit('inspection_failed', { message: 'Nie możesz zrobić kartkówki podczas interwencji policji!' });
+    }
+    if (currentRoom.teacher.anger < 65) {
+      return socket.emit('inspection_failed', { message: 'Potrzebujesz min. 65% wkurwienia, aby wziąć ucznia do odpowiedzi!' });
     }
     if (currentRoom.popQuizCooldown > 0 || currentRoom.activeQuiz) {
       return socket.emit('inspection_failed', { message: 'Kartkówka jest na cooldownie!' });

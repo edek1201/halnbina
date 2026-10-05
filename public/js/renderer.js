@@ -60,10 +60,16 @@ class GameRenderer {
       wolffWalk: '/assets/wolffidzie.png',
       wolffShout: '/assets/wolffkrzyczy.png',
 
-      // Filip Rzepa
-      rzepaIdle: '/assets/rzepa_photo.png',
-      rzepaWalk: '/assets/rzepa_photo.png',
-      rzepaShout: '/assets/rzepa_photo.png',
+      // Filip Rzepa (Własna postać 2D z maczetą)
+      rzepaIdle: '/assets/rzepa.png',
+      rzepaWalk: '/assets/rzepaidzie.png',
+      rzepaShout: '/assets/rzepakrzyczy.png',
+      rzepaMachete: '/assets/rzepamaczeta.png',
+
+      // Policemen (Szkieły)
+      policemanIdle: '/assets/policeman.png',
+      policemanWalk: '/assets/policemanidzie.png',
+      policemanFlee: '/assets/policemanucieka.png',
 
       // Items
       mleko: '/assets/mleko.png',
@@ -204,8 +210,8 @@ class GameRenderer {
     // 5. Draw Teacher Executive Desk
     this.drawTeacherDesk(ctx);
 
-    // 6. Draw Vision Cone / Attention Field (Normal modes only)
-    if (!gameState.boss && gameState.teacher && (gameState.teacher.state === 'CLASS' || gameState.teacher.state === 'RAGE')) {
+    // 6. Draw Vision Cone / Attention Field (Normal modes only - not during police raid)
+    if (!gameState.boss && gameState.teacher && (gameState.teacher.state === 'CLASS' || gameState.teacher.state === 'RAGE') && !gameState.policeActive && !gameState.teacher.isStunned) {
       this.drawTeacherVisionCone(ctx, gameState.teacher);
     }
 
@@ -247,6 +253,11 @@ class GameRenderer {
           this.drawStudent(ctx, player, player.id === myId);
         }
       });
+    }
+
+    // 8.5. Draw Police Officers (Szkieły)
+    if (gameState.policeOfficers && gameState.policeOfficers.length > 0) {
+      this.drawPoliceOfficers(ctx, gameState.policeOfficers, dt);
     }
 
     // 9. Draw Vape Smoke Clouds (conceals students inside)
@@ -917,6 +928,17 @@ class GameRenderer {
       ctx.fillStyle = '#ff1744';
       ctx.font = '900 22px Arial';
       ctx.fillText('💢', x + 18, y - 48);
+    } else if (teacher.state === 'SHOCKED') {
+      if (this.images.teacherClass && this.images.teacherClass.complete) {
+        ctx.drawImage(this.images.teacherClass, x - 32, y - 50, 64, 80);
+      } else {
+        this.drawTeacherProcedural(ctx, x, y, false);
+      }
+
+      // Shocked sweat droplets and wide eyes
+      ctx.font = '16px Arial';
+      ctx.fillText('💦', x + 24, y - 46);
+      ctx.fillText('👀', x - 24, y - 46);
     } else {
       if (this.images.teacherClass && this.images.teacherClass.complete) {
         ctx.drawImage(this.images.teacherClass, x - 32, y - 50, 64, 80);
@@ -985,9 +1007,11 @@ class GameRenderer {
     } else {
       // Normal Teacher Name Badge
       ctx.font = '700 13px "Fredoka", sans-serif';
-      ctx.fillStyle = teacher.state === 'RAGE' ? '#ff4d4d' : '#f6e58d';
+      ctx.fillStyle = teacher.state === 'RAGE' ? '#ff4d4d' : (teacher.state === 'SHOCKED' ? '#7ed6df' : '#f6e58d');
       ctx.textAlign = 'center';
-      const tag = teacher.state === 'RAGE' ? '🔥 WŚCIEKŁA KATARZYNA HALBINA 🔥' : 'Katarzyna Halbina';
+      let tag = 'Katarzyna Halbina';
+      if (teacher.state === 'RAGE') tag = '🔥 WŚCIEKŁA KATARZYNA HALBINA 🔥';
+      else if (teacher.state === 'SHOCKED') tag = '😱 Zszokowana Halbina (Bezradna)';
       ctx.fillText(tag, x, y + 36);
     }
   }
@@ -1077,7 +1101,10 @@ class GameRenderer {
     }
 
     let sprite = this.images[`${char}Idle`];
-    if (student.isShouting) {
+    if (student.isSwingingMachete || student.macheteSwingTimer > 0) {
+      sprite = this.images[`${char}Machete`] || this.images.rzepaMachete || sprite;
+      this.drawMacheteSlashEffect(ctx, x, y);
+    } else if (student.isShouting) {
       sprite = this.images[`${char}Shout`];
       if (Math.random() < 0.15) {
         this.addSoundRipples(x, y - 25);
@@ -1458,6 +1485,111 @@ class GameRenderer {
     ctx.restore();
   }
 
+  // Draw Real Police Officers (Szkieły) running into the classroom
+  drawPoliceOfficers(ctx, policeOfficers, dt) {
+    if (!policeOfficers || policeOfficers.length === 0) return;
+
+    policeOfficers.forEach(cop => {
+      const x = cop.x;
+      const y = cop.y;
+
+      // Shadow on floor
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+      ctx.beginPath();
+      ctx.ellipse(x, y + 16, 16, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Flashing siren light aura around cop
+      const sirenColor = Math.floor(Date.now() / 150) % 2 === 0 ? 'rgba(52, 152, 219, 0.35)' : 'rgba(231, 76, 60, 0.35)';
+      ctx.fillStyle = sirenColor;
+      ctx.beginPath();
+      ctx.arc(x, y - 10, 24, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Sprite selection
+      let sprite = this.images.policemanIdle;
+      if (cop.state === 'FLEEING') {
+        sprite = this.images.policemanFlee || sprite;
+      } else {
+        sprite = this.images.policemanWalk || sprite;
+      }
+
+      ctx.save();
+      if (cop.hitTimer) {
+        ctx.filter = 'brightness(2.2) drop-shadow(0 0 10px #ff3838)';
+      }
+
+      if (sprite && sprite.complete) {
+        if (cop.state === 'FLEEING') {
+          const wobble = Math.sin(Date.now() / 40) * 0.15;
+          ctx.translate(x, y);
+          ctx.rotate(wobble);
+          ctx.drawImage(sprite, -32, -50, 64, 80);
+        } else {
+          ctx.drawImage(sprite, x - 32, y - 50, 64, 80);
+        }
+      } else {
+        // Fallback procedural policeman
+        ctx.fillStyle = '#1e3799';
+        ctx.fillRect(x - 14, y - 30, 28, 40);
+        ctx.fillStyle = '#f6b93b';
+        ctx.fillRect(x - 14, y - 20, 28, 16);
+      }
+      ctx.restore();
+
+      // Name badge
+      ctx.font = '700 11px "Fredoka", sans-serif';
+      ctx.fillStyle = cop.state === 'FLEEING' ? '#e74c3c' : '#3498db';
+      ctx.textAlign = 'center';
+      ctx.fillText(`👮 ${cop.name}`, x, y + 30);
+
+      // Mini Health Bar (HP pips)
+      const barW = 34;
+      const barH = 5;
+      const barX = x - barW / 2;
+      const barY = y - 56;
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
+      const hpPct = Math.max(0, cop.hp / cop.maxHp);
+      ctx.fillStyle = hpPct > 0.5 ? '#2ecc71' : '#e74c3c';
+      ctx.fillRect(barX, barY, barW * hpPct, barH);
+
+      // Speech bubble
+      if (cop.speech) {
+        this.drawSpeechBubble(ctx, x, y - 52, cop.speech);
+      }
+    });
+  }
+
+  // Glowing Machete Slash Arc Visual Effect for Filip Rzepa
+  drawMacheteSlashEffect(ctx, x, y) {
+    ctx.save();
+    // Glowing crescent slash arc in front of Filip Rzepa
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+    ctx.lineWidth = 4;
+    ctx.shadowColor = '#00ffff';
+    ctx.shadowBlur = 14;
+
+    ctx.beginPath();
+    ctx.arc(x + 18, y - 10, 38, -Math.PI * 0.6, Math.PI * 0.4);
+    ctx.stroke();
+
+    // Secondary silver blade trail
+    ctx.strokeStyle = 'rgba(200, 225, 255, 0.7)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x + 24, y - 10, 44, -Math.PI * 0.5, Math.PI * 0.3);
+    ctx.stroke();
+
+    // Slash spark glints
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(x + 46, y - 24, 4, 0, Math.PI * 2);
+    ctx.arc(x + 40, y + 18, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   // Giant explosive jagged comic bubble for Halbina RAGE ("WY GŁUPIE SKURWYSYNY!")
   drawHalbinaRageBubble(ctx, x, y, text) {
     ctx.save();
@@ -1497,6 +1629,8 @@ class GameRenderer {
     // Text in bubble with vibrant yellow glow
     ctx.fillStyle = '#f1c40f';
     ctx.shadowColor = '#000000';
+    ctx.shadowBlur = 6;
+    ctx.fillText(text, bx, by);
     ctx.restore();
   }
 

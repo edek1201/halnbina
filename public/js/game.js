@@ -53,9 +53,9 @@
   // Student Controls DOM
   const deskNotice = document.getElementById('deskNotice');
   const shoutCards = [
-    { btn: document.getElementById('shoutBtn1'), text: document.getElementById('shoutText1') },
-    { btn: document.getElementById('shoutBtn2'), text: document.getElementById('shoutText2') },
-    { btn: document.getElementById('shoutBtn3'), text: document.getElementById('shoutText3') },
+    { btn: document.getElementById('shoutBtn1'), text: document.getElementById('shoutText1'), key: document.querySelector('#shoutBtn1 .card-key') },
+    { btn: document.getElementById('shoutBtn2'), text: document.getElementById('shoutText2'), key: document.querySelector('#shoutBtn2 .card-key') },
+    { btn: document.getElementById('shoutBtn3'), text: document.getElementById('shoutText3'), key: document.querySelector('#shoutBtn3 .card-key') },
   ];
   const btnDuck = document.getElementById('btnDuck');
   const btnCheat = document.getElementById('btnCheat');
@@ -296,6 +296,7 @@
     });
   });
 
+  let shoutCooldownTimer = null;
   function triggerShout(text) {
     if (shoutCooldown || myRole !== 'STUDENT') return;
     shoutCooldown = true;
@@ -303,15 +304,33 @@
     // Trigger local shout audio
     soundManager.playScream();
 
-    // Disable cards briefly
+    // Disable cards and show cooldown
     shoutCards.forEach(c => c.btn.classList.add('cooldown'));
 
     socket.emit('shout_trigger', { shoutText: text });
 
-    setTimeout(() => {
-      shoutCooldown = false;
-      shoutCards.forEach(c => c.btn.classList.remove('cooldown'));
-    }, 2200);
+    let remaining = 3.5;
+    if (shoutCooldownTimer) clearInterval(shoutCooldownTimer);
+    shoutCards.forEach((c) => {
+      if (c.key) c.key.textContent = `⏳ ${remaining.toFixed(1)}s`;
+    });
+
+    shoutCooldownTimer = setInterval(() => {
+      remaining -= 0.5;
+      if (remaining <= 0) {
+        clearInterval(shoutCooldownTimer);
+        shoutCooldownTimer = null;
+        shoutCooldown = false;
+        shoutCards.forEach((c, idx) => {
+          c.btn.classList.remove('cooldown');
+          if (c.key) c.key.textContent = `${idx + 1}`;
+        });
+      } else {
+        shoutCards.forEach((c) => {
+          if (c.key) c.key.textContent = `⏳ ${remaining.toFixed(1)}s`;
+        });
+      }
+    }, 500);
   }
 
   // Check if player is near any classroom desk (within 55px)
@@ -369,9 +388,15 @@
     });
   }
 
-  // Throw Chair [X] (Hurls chair at teacher - triggers police call!)
+  // Throw Chair [X] (Hurls chair at teacher - ONLY FILIP RZEPA!)
   function throwChair() {
     if (myRole !== 'STUDENT' || chairCooldown) return;
+    const me = currentGameState.players && currentGameState.players.find(p => p.id === myPlayerId);
+    if (!me || me.character !== 'rzepa') {
+      tickerText.textContent = "⚠️ Tylko Filip Rzepa może rzucić krzesłem w Halbinę!";
+      return;
+    }
+
     chairCooldown = true;
     soundManager.playChairThrow();
 
@@ -466,7 +491,9 @@
       socket.emit('use_ability', { abilityName: 'vape' });
     } else if (me.character === 'rzepa') {
       soundManager.playMacheteSlash();
-      socket.emit('use_ability', { abilityName: 'machete' });
+      me.isSwingingMachete = true;
+      setTimeout(() => { me.isSwingingMachete = false; }, 420);
+      socket.emit('student_machete_swing', { x: posX, y: posY });
     }
   }
 
@@ -653,7 +680,12 @@
       } else if (e.code === 'KeyZ') {
         toggleSeat();
       } else if (e.code === 'KeyX') {
-        throwChair();
+        const me = currentGameState.players && currentGameState.players.find(p => p.id === myPlayerId);
+        if (me && me.character === 'rzepa') {
+          throwChair();
+        } else {
+          tickerText.textContent = "⚠️ Tylko Filip Rzepa może rzucić krzesłem w Halbinę!";
+        }
       } else if (e.code === 'KeyC') {
         toggleDuck();
       } else if (e.code === 'KeyE') {
@@ -682,6 +714,11 @@
 
   // Configure Superpower HUD buttons for player's character
   function configureAbilityButtons(char) {
+    // Only Filip Rzepa can throw chairs!
+    if (btnThrowChair) {
+      btnThrowChair.style.display = (char === 'rzepa') ? 'inline-flex' : 'none';
+    }
+
     if (char === 'romanowski') {
       btnAbility1Icon.textContent = '🥛';
       btnAbility1Text.textContent = '[Q] Stwórz Mleko';
@@ -736,12 +773,19 @@
         btnAbility2Text.textContent = '[V] Zapal e-vape';
       }
     } else if (me.character === 'rzepa') {
+      const copsInRoom = currentGameState.policeOfficers && currentGameState.policeOfficers.some(c => c.state !== 'FLEEING');
       if (cd2 > 0) {
         btnAbility2.classList.add('cooldown');
         btnAbility2Text.textContent = `[V] ⏳ ${cd2}s`;
       } else {
         btnAbility2.classList.remove('cooldown');
-        btnAbility2Text.textContent = '[V] Maczeta';
+        if (copsInRoom) {
+          btnAbility2Text.textContent = '[V] 🗡️ CIĘCIE MACZETĄ!';
+          btnAbility2.title = 'Uderz policjanta maczetą! (Klawisz V)';
+        } else {
+          btnAbility2Text.textContent = '[V] Maczeta';
+          btnAbility2.title = 'Maczeta: Rozgonić policję po rzucie krzesłem / atak (Klawisz V)';
+        }
       }
     }
   }
@@ -884,7 +928,7 @@
 
   // POLICE RAID EVENT (Szkieły jadą!)
   socket.on('police_raid_event', (data) => {
-    soundManager.playPoliceSiren(data.duration || 7.5);
+    soundManager.playPoliceSiren(data.duration || 12.0);
     soundManager.playHalbinaRage();
 
     policeBanner.classList.add('active');
@@ -892,13 +936,19 @@
     halbinaStatusText.textContent = `🔥 "WY GŁUPIE SKURWYSYNY!" 🔥`;
     tickerText.textContent = data.logMsg;
 
-    setTimeout(() => {
-      policeBanner.classList.remove('active');
-    }, (data.duration || 7.5) * 1000);
+    if (macheteAlertBanner) {
+      macheteAlertBanner.style.display = 'block';
+      macheteAlertBanner.classList.add('active');
+      macheteAlertBanner.textContent = `🚨 SZKIEŁY W SALI! FILIP RZEPA – PODEJDŹ I ROZJEB ICH MACZETĄ [V]! 🚨`;
+    }
   });
 
   socket.on('police_raid_ended', () => {
     policeBanner.classList.remove('active');
+    if (macheteAlertBanner) {
+      macheteAlertBanner.classList.remove('active');
+      macheteAlertBanner.style.display = 'none';
+    }
   });
 
   // Police Call Initiated (Halbina dials 997 after chair hit)
@@ -913,12 +963,73 @@
     tickerText.textContent = data.message;
   });
 
+  // Machete swung broadcast
+  socket.on('machete_swung', (data) => {
+    if (data.playerId !== myPlayerId) {
+      soundManager.playMacheteSlash();
+    }
+    if (currentGameState.players) {
+      const swinger = currentGameState.players.find(p => p.id === data.playerId);
+      if (swinger) {
+        swinger.isSwingingMachete = true;
+        setTimeout(() => { swinger.isSwingingMachete = false; }, 420);
+      }
+    }
+  });
+
+  // Cop hit by machete
+  socket.on('cop_hit', (data) => {
+    soundManager.playCopScream();
+    tickerText.textContent = `💥 Filip Rzepa trafił ${data.copName}! HP szkieła: ${data.hp}/${data.maxHp}`;
+  });
+
+  // Cop defeated by machete
+  socket.on('cop_defeated', (data) => {
+    soundManager.playCopScream();
+    tickerText.textContent = data.message;
+  });
+
+  // Cop tackled student with baton
+  socket.on('cop_tackled_student', (data) => {
+    soundManager.playBatonHit();
+    if (data.studentId === myPlayerId) {
+      soundManager.playBusted();
+      alarmOverlay.classList.add('active');
+      alarmTitle.textContent = '🚨 SPACYFIKOWANY PRZEZ POLICJĘ! 🚨';
+      alarmDesc.textContent = `${data.copName} uderzył cię pałką policyjną! Otrzymujesz uwagę!`;
+      setTimeout(() => {
+        alarmOverlay.classList.remove('active');
+      }, 1800);
+    }
+    tickerText.textContent = `🚨 ${data.copName} spałował ucznia ${data.studentName}!`;
+  });
+
+  // Police caught Filip Rzepa
+  socket.on('police_caught_rzepa', (data) => {
+    soundManager.playBusted();
+    alarmOverlay.classList.add('active');
+    alarmTitle.textContent = '🚨 FILIP RZEPA SPACYFIKOWANY! 🚨';
+    alarmDesc.textContent = `${data.copName} powalił Rzepę na glebę! Interwencja policji zakończona!`;
+    setTimeout(() => {
+      alarmOverlay.classList.remove('active');
+    }, 2500);
+
+    if (macheteAlertBanner) {
+      macheteAlertBanner.classList.remove('active');
+      macheteAlertBanner.style.display = 'none';
+    }
+    tickerText.textContent = data.message;
+  });
+
   // Police Raid Rescued by Filip Rzepa with Machete
   socket.on('police_raid_rescued', (data) => {
     soundManager.playMacheteSlash();
     if (macheteAlertBanner) {
       macheteAlertBanner.classList.remove('active');
       macheteAlertBanner.style.display = 'none';
+    }
+    if (policeBanner) {
+      policeBanner.classList.remove('active');
     }
     tickerText.textContent = data.message;
   });
@@ -1479,18 +1590,42 @@
       }
     }
 
-    // Update Machete Alert Banner for Police Raid countdown
-    if (state.policeRaidPending) {
+    // Exclude banners during pop quiz modal to prevent UI clutter
+    const isQuizActive = modalPopQuiz && modalPopQuiz.classList.contains('active');
+    const activeCops = (state.policeOfficers || []).filter(c => c.state !== 'FLEEING');
+
+    if (isQuizActive) {
+      if (macheteAlertBanner) {
+        macheteAlertBanner.classList.remove('active');
+        macheteAlertBanner.style.display = 'none';
+      }
+      if (policeBanner) policeBanner.classList.remove('active');
+    } else if (activeCops.length > 0) {
+      if (policeBanner) policeBanner.classList.remove('active');
       if (macheteAlertBanner) {
         macheteAlertBanner.style.display = 'block';
         macheteAlertBanner.classList.add('active');
-        macheteAlertBanner.textContent = `🚨 SZKIEŁY WBIEGAJĄ DO SALI ZA ${Math.ceil(state.policeRaidTimer || 8)}s! FILIP RZEPA – ROZJEB ICH MACZETĄ [V]! 🚨`;
+        macheteAlertBanner.textContent = `🚨 SZKIEŁY W SALI (${activeCops.length} pozostało)! FILIP RZEPA – PODEJDŹ I UDERZAJ MACZETĄ [V]! 🚨`;
       }
+    } else if (state.policeRaidPending) {
+      if (policeBanner) policeBanner.classList.remove('active');
+      if (macheteAlertBanner) {
+        macheteAlertBanner.style.display = 'block';
+        macheteAlertBanner.classList.add('active');
+        macheteAlertBanner.textContent = `🚨 SZKIEŁY WBIEGAJĄ DO SALI ZA ${Math.ceil(state.policeRaidTimer || 8)}s! FILIP RZEPA – PRZYGOTUJ MACZETĘ [V]! 🚨`;
+      }
+    } else if (state.policeActive) {
+      if (macheteAlertBanner) {
+        macheteAlertBanner.classList.remove('active');
+        macheteAlertBanner.style.display = 'none';
+      }
+      if (policeBanner) policeBanner.classList.add('active');
     } else {
       if (macheteAlertBanner) {
         macheteAlertBanner.classList.remove('active');
         macheteAlertBanner.style.display = 'none';
       }
+      if (policeBanner) policeBanner.classList.remove('active');
     }
   });
 
