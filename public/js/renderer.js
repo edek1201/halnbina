@@ -281,9 +281,13 @@ class GameRenderer {
       });
     }
 
-    // 15. Draw Halbina RAGE giant explosive bubble ("WY GŁUPIE SKURWYSYNY!")
-    if (isRaging && gameState.teacher.rageText) {
-      this.drawHalbinaRageBubble(ctx, gameState.teacher.x, gameState.teacher.y - 85, gameState.teacher.rageText);
+    // 15. Draw Halbina Speech Bubble & RAGE bubble on center above her
+    if (gameState.teacher) {
+      if (isRaging && gameState.teacher.rageText) {
+        this.drawHalbinaRageBubble(ctx, gameState.teacher.x, gameState.teacher.y - 85, gameState.teacher.rageText);
+      } else if (gameState.teacher.speechText) {
+        this.drawTeacherSpeechBubble(ctx, gameState.teacher.x, gameState.teacher.y - 80, gameState.teacher.speechText);
+      }
     }
 
     if (isRaging || isBossEnraged) {
@@ -669,25 +673,30 @@ class GameRenderer {
 
   drawTeacherVisionCone(ctx, teacher) {
     const tx = teacher.x;
-    const ty = teacher.y + 25;
+    const ty = teacher.y + 15;
+    const dyBottom = 700 - ty;
+    const maxDxBottom = 55 + dyBottom * 0.62;
 
-    const grad = ctx.createRadialGradient(tx, ty, 20, tx, ty, 600);
-    grad.addColorStop(0, 'rgba(231, 76, 60, 0.45)');
-    grad.addColorStop(0.5, 'rgba(231, 76, 60, 0.25)');
-    grad.addColorStop(1, 'rgba(231, 76, 60, 0.05)');
+    const grad = ctx.createRadialGradient(tx, ty, 30, tx, ty + 240, 480);
+    grad.addColorStop(0, 'rgba(231, 76, 60, 0.42)');
+    grad.addColorStop(0.5, 'rgba(231, 76, 60, 0.20)');
+    grad.addColorStop(1, 'rgba(231, 76, 60, 0.04)');
 
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(tx, ty);
-    ctx.lineTo(0, 700);
-    ctx.lineTo(1000, 700);
+    ctx.moveTo(tx - 55, ty);
+    ctx.lineTo(tx + 55, ty);
+    ctx.lineTo(tx + maxDxBottom, 700);
+    ctx.lineTo(tx - maxDxBottom, 700);
     ctx.closePath();
     ctx.fillStyle = grad;
     ctx.fill();
 
-    ctx.strokeStyle = 'rgba(231, 76, 60, 0.4)';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(231, 76, 60, 0.5)';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([8, 6]);
     ctx.stroke();
+    ctx.setLineDash([]);
     ctx.restore();
   }
 
@@ -1318,8 +1327,73 @@ class GameRenderer {
     // Text in bubble with vibrant yellow glow
     ctx.fillStyle = '#f1c40f';
     ctx.shadowColor = '#000000';
-    ctx.shadowBlur = 8;
-    ctx.fillText(text, bx, by);
+    ctx.restore();
+  }
+
+  // Comic speech bubble for Halbina in the center above her head
+  drawTeacherSpeechBubble(ctx, x, y, text) {
+    if (!text) return;
+    ctx.save();
+    const bounce = Math.sin(Date.now() / 80) * 2;
+    const by = y + bounce;
+
+    ctx.font = '900 19px "Bangers", cursive, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // Check if text needs 2-line wrap
+    const words = text.split(' ');
+    let line1 = text;
+    let line2 = '';
+    if (words.length > 5 || ctx.measureText(text).width > 440) {
+      const mid = Math.ceil(words.length / 2);
+      line1 = words.slice(0, mid).join(' ');
+      line2 = words.slice(mid).join(' ');
+    }
+
+    const w1 = ctx.measureText(line1).width;
+    const w2 = line2 ? ctx.measureText(line2).width : 0;
+    const maxW = Math.max(w1, w2);
+    const boxW = Math.min(620, Math.max(220, maxW + 40));
+    const boxH = line2 ? 56 : 38;
+
+    const bx = Math.max(30, Math.min(1000 - boxW - 30, x - boxW / 2));
+    const topY = by - boxH;
+
+    // Shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 4;
+
+    // Speech bubble background
+    ctx.fillStyle = '#fffdf7';
+    ctx.strokeStyle = '#c0392b';
+    ctx.lineWidth = 3;
+
+    ctx.beginPath();
+    ctx.roundRect(bx, topY, boxW, boxH, 10);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.shadowColor = 'transparent';
+
+    // Bubble pointer down to Halbina's head
+    ctx.beginPath();
+    ctx.moveTo(x - 8, topY + boxH);
+    ctx.lineTo(x, topY + boxH + 12);
+    ctx.lineTo(x + 8, topY + boxH);
+    ctx.fillStyle = '#fffdf7';
+    ctx.fill();
+    ctx.stroke();
+
+    // Bubble text
+    ctx.fillStyle = '#c0392b';
+    if (line2) {
+      ctx.fillText(line1, bx + boxW / 2, topY + 18);
+      ctx.fillText(line2, bx + boxW / 2, topY + 39);
+    } else {
+      ctx.fillText(line1, bx + boxW / 2, topY + boxH / 2);
+    }
 
     ctx.restore();
   }

@@ -1393,6 +1393,540 @@ input[type="text"]:focus, select:focus {
   100% { transform: scale(1.05); box-shadow: 0 0 20px rgba(0, 206, 201, 0.9); }
 }
 
+/* =========================================
+   POP QUIZ / KARTKÓWKA Z CHEMII STYLES
+   ========================================= */
+.quiz-sheet-container {
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  perspective: 1000px;
+}
+
+.notebook-sheet {
+  position: relative;
+  width: 100%;
+  background-color: #fdfbf7;
+  background-image: 
+    linear-gradient(#cce2f0 1px, transparent 1px),
+    linear-gradient(90deg, #cce2f0 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-position: 0 0;
+  border-radius: 6px;
+  border: 1px solid #c8d6e5;
+  box-shadow: 
+    0 15px 35px rgba(0, 0, 0, 0.6),
+    0 2px 6px rgba(0, 0, 0, 0.2),
+    inset 0 0 40px rgba(220, 210, 190, 0.4);
+  padding: 24px 28px 24px 65px;
+  box-sizing: border-box;
+  color: #1a252f;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* Torn/rough top edge effect */
+.notebook-sheet::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: repeating-linear-gradient(
+    45deg,
+    #bdc3c7,
+    #bdc3c7 4px,
+    #fdfbf7 4px,
+    #fdfbf7 8px
+  );
+  opacity: 0.6;
+}
+
+/* Binder hole punches */
+.notebook-holes {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  pointer-events: none;
+}
+
+.notebook-holes span {
+  width: 14px;
+  height: 14px;
+  background: #2c3e50;
+  border-radius: 50%;
+  box-shadow: inset 1px 1px 3px rgba(0,0,0,0.8), 0 0 0 2px #ecf0f1;
+}
+
+/* Red Margin Line */
+.red-margin-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 48px;
+  width: 2px;
+  background-color: #e74c3c;
+  box-shadow: 0 0 2px rgba(231, 76, 60, 0.5);
+  pointer-events: none;
+}
+
+/* Wet paper effect */
+.notebook-sheet.wet-paper {
+  background-color: #e3edf2 !important;
+  box-shadow: 
+    0 15px 35px rgba(0, 0, 0, 0.6),
+    inset 0 0 50px rgba(52, 152, 219, 0.35);
+  animation: wet-wobble 4s ease-in-out infinite alternate;
+}
+
+@keyframes wet-wobble {
+  0% { transform: rotate(0deg) skew(0deg); }
+  50% { transform: rotate(-0.5deg) skew(0.5deg); }
+  100% { transform: rotate(0.5deg) skew(-0.5deg); }
+}
+
+.wet-banner {
+  background: rgba(52, 152, 219, 0.25);
+  border: 1px dashed #2980b9;
+  border-radius: 6px;
+  padding: 6px 12px;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+  color: #1b4f72;
+  text-align: center;
+}
+
+/* Sheet Header */
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+  border-bottom: 2px solid #2980b9;
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+}
+
+.teacher-threat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.threat-avatar {
+  font-size: 2.2rem;
+  filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.2));
+}
+
+.threat-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.threat-quote {
+  font-family: 'Bangers', cursive;
+  font-size: 1.25rem;
+  color: #c0392b;
+  letter-spacing: 0.8px;
+  line-height: 1.2;
+}
+
+.sheet-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #2980b9;
+  letter-spacing: 0.5px;
+}
+
+.quiz-timer-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 110px;
+}
+
+.timer-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #7f8c8d;
+}
+
+.timer-countdown {
+  font-family: 'Bangers', cursive;
+  font-size: 1.6rem;
+  color: #e74c3c;
+  line-height: 1;
+}
+
+.quiz-timer-bar {
+  width: 100%;
+  height: 8px;
+  background: #bdc3c7;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 3px;
+}
+
+.quiz-timer-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #e74c3c, #f1c40f, #2ecc71);
+  transition: width 0.1s linear;
+}
+
+/* Question Box */
+.quiz-question-box {
+  margin-bottom: 14px;
+}
+
+.q-number {
+  font-family: 'Permanent Marker', cursive;
+  font-size: 0.95rem;
+  color: #2c3e50;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.quiz-question-text {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+  font-size: 1.12rem;
+  color: #1a252f;
+  line-height: 1.4;
+}
+
+/* Choices Grid */
+.quiz-options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.quiz-opt-btn {
+  background: #ffffff;
+  border: 2px solid #95a5a6;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+
+.quiz-opt-btn:hover {
+  border-color: #2980b9;
+  background: #ebf5fb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.quiz-opt-btn.selected {
+  border-color: #27ae60;
+  background: #d4efdf;
+  box-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+}
+
+.quiz-opt-btn.phone-hint {
+  border-color: #f1c40f;
+  background: #fef9e7;
+  box-shadow: 0 0 12px rgba(241, 196, 15, 0.75);
+  animation: pulse-warn 0.6s infinite alternate;
+}
+
+.opt-letter {
+  font-family: 'Permanent Marker', cursive;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2980b9;
+  min-width: 24px;
+}
+
+.quiz-opt-btn.selected .opt-letter {
+  color: #27ae60;
+}
+
+.opt-text {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 0.95rem;
+  color: #2c3e50;
+  line-height: 1.25;
+}
+
+/* Artwork Area (Spit & Dick) */
+.paper-artwork-area {
+  position: relative;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.spit-stain {
+  position: absolute;
+  left: 20px;
+  width: 140px;
+  height: 75px;
+  background: radial-gradient(ellipse at center, rgba(162, 222, 150, 0.75) 0%, rgba(92, 184, 92, 0.45) 55%, transparent 75%);
+  border-radius: 50% 60% 40% 70% / 60% 40% 70% 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 15px rgba(46, 204, 113, 0.4);
+  transform: rotate(-10deg);
+  animation: spit-wobble 3s infinite alternate;
+}
+
+@keyframes spit-wobble {
+  0% { transform: rotate(-10deg) scale(1); }
+  100% { transform: rotate(-6deg) scale(1.05); }
+}
+
+.spit-tag {
+  font-family: 'Permanent Marker', cursive;
+  font-size: 0.75rem;
+  color: #1e824c;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.dick-drawing {
+  position: absolute;
+  right: 25px;
+  width: 130px;
+  height: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: rotate(6deg);
+}
+
+.dick-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.25));
+}
+
+.pen-signature {
+  font-family: 'Permanent Marker', cursive;
+  font-size: 0.68rem;
+  color: #1b3b82;
+  margin-top: -6px;
+}
+
+/* Actions Footer */
+.sheet-actions-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px dashed #bdc3c7;
+  padding-top: 12px;
+}
+
+.mischief-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-mischief {
+  padding: 7px 12px;
+  border-radius: 6px;
+  border: 1px solid #7f8c8d;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.phone-btn {
+  background: #34495e;
+  color: #fff;
+  border-color: #2c3e50;
+}
+.phone-btn:hover {
+  background: #2c3e50;
+  transform: translateY(-2px);
+}
+
+.spit-btn {
+  background: #27ae60;
+  color: #fff;
+  border-color: #1e8449;
+}
+.spit-btn:hover {
+  background: #2ecc71;
+  transform: translateY(-2px);
+}
+.spit-btn.cooldown {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.dick-btn {
+  background: #e67e22;
+  color: #fff;
+  border-color: #d35400;
+}
+.dick-btn:hover {
+  background: #f39c12;
+  transform: translateY(-2px);
+}
+
+.btn-handin {
+  background: #2980b9;
+  color: white;
+  box-shadow: 0 4px 0 #1b4f72;
+  white-space: nowrap;
+}
+.btn-handin:not(:disabled):hover {
+  background: #3498db;
+}
+.btn-handin:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* =========================================
+   SHOWCASE PAPER MODAL STYLES (ŚRODEK SALI)
+   ========================================= */
+.showcase-card {
+  max-width: 620px;
+  width: 100%;
+  background: #1e272e;
+  border: 4px solid #e74c3c;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 0 35px rgba(231, 76, 60, 0.7), inset 0 0 20px rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  animation: showcase-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes showcase-pop {
+  0% { transform: scale(0.7); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.showcase-banner {
+  text-align: center;
+}
+
+.showcase-banner h2 {
+  font-family: 'Bangers', cursive;
+  font-size: 2.2rem;
+  color: #ff7675;
+  letter-spacing: 1.5px;
+  text-shadow: 2px 2px 0px #000;
+}
+
+.showcase-banner p {
+  color: #fab1a0;
+  font-size: 0.95rem;
+}
+
+.showcase-sheet {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  background-color: #fffef7;
+  background-image: 
+    linear-gradient(#cce2f0 1px, transparent 1px),
+    linear-gradient(90deg, #cce2f0 1px, transparent 1px);
+  background-size: 20px 20px;
+  border: 2px solid #bdc3c7;
+  border-radius: 6px;
+  padding: 20px 24px 20px 60px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  box-sizing: border-box;
+  color: #2c3e50;
+}
+
+.showcase-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #e74c3c;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.showcase-author {
+  font-family: 'Permanent Marker', cursive;
+  font-size: 1.1rem;
+  color: #2c3e50;
+}
+
+.showcase-grade {
+  font-family: 'Bangers', cursive;
+  font-size: 1.6rem;
+  color: #d63031;
+  text-shadow: 1px 1px 0px #fff;
+}
+
+.showcase-centerpiece {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 180px;
+}
+
+.showcase-dick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 220px;
+}
+
+.showcase-dick .dick-svg {
+  width: 100%;
+  height: 160px;
+}
+
+.showcase-spit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.showcase-spit-puddle {
+  width: 220px;
+  height: 130px;
+  background: radial-gradient(ellipse at center, rgba(162, 222, 150, 0.9) 0%, rgba(46, 204, 113, 0.6) 55%, transparent 75%);
+  border-radius: 55% 45% 65% 35% / 40% 60% 40% 60%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 25px rgba(39, 174, 96, 0.6), 0 4px 10px rgba(0,0,0,0.15);
+  animation: spit-wobble 2s infinite alternate;
+}
+
+.showcase-spit-puddle span {
+  font-family: 'Bangers', cursive;
+  font-size: 1.4rem;
+  color: #1e824c;
+}
+
 /* RESPONSIVENESS */
 @media (max-width: 768px) {
   .menu-actions {
@@ -1407,4 +1941,14 @@ input[type="text"]:focus, select:focus {
   .card-text {
     font-size: 1.3rem;
   }
+  .quiz-options-grid {
+    grid-template-columns: 1fr;
+  }
+  .notebook-sheet {
+    padding-left: 55px;
+  }
+  .threat-quote {
+    font-size: 1rem;
+  }
 }
+

@@ -79,6 +79,89 @@ function isNearAnyDesk(x, y, maxDist = 58) {
   return false;
 }
 
+// Vision Cone Field: Halbina looks downwards from her desk (tx, ty)
+function isStudentInVisionCone(studentX, studentY, teacherX, teacherY) {
+  if (studentY <= teacherY + 15) return false; // Behind or parallel with teacher
+  const dy = studentY - (teacherY + 15);
+  // Cone spreads out at 0.62 ratio with 55px base desk width
+  const maxDx = 55 + dy * 0.62;
+  return Math.abs(studentX - teacherX) <= maxDx;
+}
+
+// Chemistry Quiz Questions for 2nd Grade Technical School (Technikum Klasa 2)
+const CHEMISTRY_QUIZ_QUESTIONS = [
+  {
+    id: 1,
+    question: "Jaki produkt główny powstaje w reakcji addycji bromowodoru (HBr) do propenu zgodnie z regułą Markownikowa?",
+    options: ["2-bromopropan", "1-bromopropan", "1,2-dibromopropan", "Cyklopropan"],
+    correctIndex: 0
+  },
+  {
+    id: 2,
+    question: "Wskaż odczynnik i wynik pozytywnej próby Trommera na obecność grupy aldehydowej:",
+    options: [
+      "Wodorotlenek miedzi(II) Cu(OH)₂ -> ceglastoczerwony osad Cu₂O",
+      "Amoniakalny roztwór tlenku srebra(I) -> lustro srebrne",
+      "Chlorek żelaza(III) FeCl₃ -> intensywnie fioletowy kompleks",
+      "Woda bromowa w ciemności -> odbarwienie bez osadu"
+    ],
+    correctIndex: 0
+  },
+  {
+    id: 3,
+    question: "W wyniku reakcji estryfikacji kwasu etanowego z etanolem w obecności stężonego H₂SO₄ powstaje:",
+    options: ["Octan etylu (etanian etylu) i woda", "Mrówczan metylu i gazowy wodór", "Eter dietylowy i kwas siarkawy", "Aldehyd octowy i woda"],
+    correctIndex: 0
+  },
+  {
+    id: 4,
+    question: "Jaki typ hybrydyzacji orbitali atomowych węgla występuje w cząsteczce etynu (acetylenu C₂H₂)?",
+    options: ["sp (liniowa)", "sp² (trygonalna)", "sp³ (tetraedryczna)", "dsp² (płaska kwadratowa)"],
+    correctIndex: 0
+  },
+  {
+    id: 5,
+    question: "Który z poniższych alkoholi NIE ulega łagodnemu utlenieniu za pomocą CuO do aldehydu ani ketonu?",
+    options: ["2-metylopropan-2-ol (alkohol III-rzędowy)", "Butan-1-ol (alkohol I-rzędowy)", "Propan-2-ol (alkohol II-rzędowy)", "Etanol (alkohol I-rzędowy)"],
+    correctIndex: 0
+  },
+  {
+    id: 6,
+    question: "Jaka jest systematyczna nazwa IUPAC związku o wzorze CH₃-CH(CH₃)-CH₂-COOH?",
+    options: ["Kwas 3-metylobutanowy", "Kwas 2-metylobutanowy", "Kwas izowalerianowy", "Kwas 3,3-dimetylopropanowy"],
+    correctIndex: 0
+  },
+  {
+    id: 7,
+    question: "Reakcja nitrowania benzenu mieszaniną nitrującą (stęż. HNO₃ + stęż. H₂SO₄) to:",
+    options: [
+      "Substytucja elektrofilowa z atakiem jonu nitroniowego (NO₂⁺)",
+      "Addycja rodnikowa z atakiem rodnika hydroksylowego",
+      "Substytucja nukleofilowa jonu azotanowego (NO₃⁻)",
+      "Eliminacja elektrofilowa wodoru z pierścienia"
+    ],
+    correctIndex: 0
+  },
+  {
+    id: 8,
+    question: "Wskaż węglowodór, który w temperaturze pokojowej natychmiast odbarwia wodę bromową bez dostępu światła:",
+    options: ["Eten (reakcja addycji do wiązania podwójnego)", "Etan (nasycony alkan)", "Benzen w ciemności", "Cykloheksan"],
+    correctIndex: 0
+  },
+  {
+    id: 9,
+    question: "Wskaż produkt katalitycznej redukcji acetonu (propan-2-onu) gazowym wodorem w obecności niklu:",
+    options: ["Propan-2-ol (alkohol II-rzędowy)", "Propan-1-ol (alkohol I-rzędowy)", "Kwas propanowy", "Propanal (aldehyd)"],
+    correctIndex: 0
+  },
+  {
+    id: 10,
+    question: "Który ze związków daje pozytywny wynik próby jodoformowej (żółty krystaliczny osad CHI₃ z I₂ w obecności NaOH)?",
+    options: ["Etanol oraz propanon (aceton)", "Metanol oraz formaldehyd", "Benzen oraz fenol", "Kwas mrówkowy oraz etan"],
+    correctIndex: 0
+  }
+];
+
 function getRandomShouts(count = 3, exclude = []) {
   const available = SHOUT_POOL.filter(s => !exclude.includes(s));
   const shuffled = [...available].sort(() => 0.5 - Math.random());
@@ -122,9 +205,19 @@ class Room {
       anger: 0,
       rageText: '',
       rageTimer: 0,
+      speechText: '', // Spoken text visible centered above Halbina
+      speechTimer: 0,
       shoutCooldown: 0,
       lastAction: 'Pisze na tablicy wzór chemiczny...'
     };
+
+    // Human teacher turn timers (turn to class for 2s, 5s cooldown)
+    this.teacherTurnDuration = 0;
+    this.teacherTurnCooldown = 0;
+
+    // Pop Quiz / Przepytywanka State (Anger >= 50%)
+    this.activeQuiz = null; // { studentId, studentName, question, options, correctIndex, isWet, isSpit, hasDick, timeRemaining, spitCooldown }
+    this.popQuizCooldown = 0;
 
     // Boss Fight State
     this.boss = {
@@ -146,6 +239,59 @@ class Room {
     this.smokeClouds = []; // vape smoke clouds
 
     this.roundLogs = [];
+  }
+
+  setTeacherSpeech(text, duration = 4.0) {
+    this.teacher.speechText = text;
+    this.teacher.speechTimer = duration;
+    io.to(this.code).emit('teacher_speech', { text: text, duration: duration });
+  }
+
+  startPopQuiz(targetStudent) {
+    if (this.activeQuiz || !targetStudent || targetStudent.isEliminated || targetStudent.role !== 'STUDENT') return false;
+
+    const q = CHEMISTRY_QUIZ_QUESTIONS[Math.floor(Math.random() * CHEMISTRY_QUIZ_QUESTIONS.length)];
+    const indices = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+    const shuffledOptions = indices.map(idx => q.options[idx]);
+    const correctIdx = indices.indexOf(q.correctIndex);
+    const isWet = Math.random() < 0.4; // 40% chance for wet paper
+
+    this.activeQuiz = {
+      studentId: targetStudent.id,
+      studentName: targetStudent.name,
+      question: q.question,
+      options: shuffledOptions,
+      correctIndex: correctIdx,
+      isWet: isWet,
+      isSpit: false,
+      hasDick: false,
+      timeRemaining: 15.0,
+      spitCooldown: 0
+    };
+
+    this.popQuizCooldown = 18.0;
+
+    const speech = "Miarka się przebrała skurwysynie jebany do odpowiedzi!";
+    this.setTeacherSpeech(speech, 5.0);
+
+    const logMsg = `📢 Halbina wzywa ${targetStudent.name} do odpowiedzi: "${speech}"!`;
+    this.roundLogs.unshift(logMsg);
+
+    io.to(this.code).emit('pop_quiz_announced', {
+      studentId: targetStudent.id,
+      studentName: targetStudent.name,
+      message: logMsg,
+      speech: speech
+    });
+
+    io.to(targetStudent.id).emit('pop_quiz_modal', {
+      question: q.question,
+      options: shuffledOptions,
+      isWet: isWet,
+      timeRemaining: 15.0
+    });
+
+    return true;
   }
 
   addPlayer(socketId, characterChoice) {
@@ -445,6 +591,60 @@ class Room {
       this.policeActiveTimer -= dt;
       if (this.policeActiveTimer <= 0) {
         io.to(this.code).emit('police_raid_ended');
+      }
+    }
+
+    // Teacher speech bubble timer
+    if (this.teacher.speechTimer > 0) {
+      this.teacher.speechTimer -= dt;
+      if (this.teacher.speechTimer <= 0) {
+        this.teacher.speechText = '';
+      }
+    }
+
+    // Human teacher turn timers (2 seconds looking at class, 5 seconds cooldown)
+    if (this.teacherTurnCooldown > 0) {
+      this.teacherTurnCooldown -= dt;
+    }
+    if (!this.teacher.isAI && this.teacher.state === 'CLASS') {
+      this.teacherTurnDuration -= dt;
+      if (this.teacherTurnDuration <= 0) {
+        this.teacher.state = 'BOARD';
+        this.teacherTurnCooldown = 5.0; // 5s cooldown
+        this.teacher.inspectionsThisTurn = 0;
+        io.to(this.code).emit('teacher_turned', { state: 'BOARD', cooldown: 5.0 });
+      }
+    }
+
+    // Pop Quiz / Kartkówka timers & AI trigger
+    if (this.popQuizCooldown > 0) {
+      this.popQuizCooldown -= dt;
+    }
+    if (this.activeQuiz) {
+      this.activeQuiz.timeRemaining -= dt;
+      if (this.activeQuiz.spitCooldown > 0) {
+        this.activeQuiz.spitCooldown -= dt;
+      }
+      if (this.activeQuiz.timeRemaining <= 0) {
+        const student = this.players.get(this.activeQuiz.studentId);
+        this.activeQuiz = null;
+        io.to(this.code).emit('pop_quiz_closed');
+        if (student && !student.isEliminated) {
+          this.penalizeStudent(student, 'QUIZ_FAIL');
+          this.setTeacherSpeech("Ty kurwo głupia!", 4.0);
+          const failMsg = `❌ Czas minął! ${student.name} nie odpowiedział na kartkówce! Halbina krzyczy: "TY KURWO GŁUPIA!"`;
+          this.roundLogs.unshift(failMsg);
+          io.to(this.code).emit('pop_quiz_result', { success: false, studentName: student.name, message: failMsg });
+        }
+      }
+    } else if (this.teacher.isAI && !this.boss.isBossMode && this.teacher.anger >= 50 && this.popQuizCooldown <= 0) {
+      // AI Halbina triggers pop quiz when anger >= 50%
+      if (Math.random() < 0.25 * dt) {
+        const activeStudents = Array.from(this.players.values()).filter(p => p.role === 'STUDENT' && !p.isEliminated);
+        if (activeStudents.length > 0) {
+          const target = activeStudents[Math.floor(Math.random() * activeStudents.length)];
+          this.startPopQuiz(target);
+        }
       }
     }
 
@@ -762,10 +962,14 @@ class Room {
         p.isDucking = false;
       }
 
+      // Vision cone & smoke check for this student
+      const inVisionCone = isStudentInVisionCone(p.x, p.y, this.teacher.x, this.teacher.y);
+      const canTeacherSee = inVisionCone && !isInSmoke;
+
       // Cheating at desk gives bonus respect points!
       if (p.isCheating && isAtAnyDesk) {
         p.points += Math.round(35 * dt);
-        if (teacherIsLooking && p.immunityTimer <= 0 && !isInSmoke) {
+        if (teacherIsLooking && p.immunityTimer <= 0 && canTeacherSee) {
           this.penalizeStudent(p, 'CHEATING');
         }
       }
@@ -774,9 +978,8 @@ class Room {
       const isProtectedByDesk = p.isDucking && isAtAnyDesk;
 
       // DETECTION BY TEACHER (Normal modes only)
+      // Only students in Halbina's vision cone get caught!
       if (teacherIsLooking && p.immunityTimer <= 0) {
-        const canTeacherSee = p.y >= 160 && !isInSmoke;
-
         if (canTeacherSee) {
           if (p.isShouting) {
             this.penalizeStudent(p, 'SHOUTING');
@@ -803,10 +1006,19 @@ class Room {
         state: this.teacher.state,
         anger: Math.round(this.teacher.anger),
         rageText: this.teacher.rageText,
+        speechText: this.teacher.speechText,
         isAI: this.teacher.isAI,
         teacherId: this.teacherId,
-        inspectionsThisTurn: this.teacher.inspectionsThisTurn
+        inspectionsThisTurn: this.teacher.inspectionsThisTurn,
+        turnDuration: Math.max(0, this.teacherTurnDuration),
+        turnCooldown: Math.max(0, this.teacherTurnCooldown),
+        canQuiz: this.teacher.anger >= 50 && this.popQuizCooldown <= 0 && !this.activeQuiz
       },
+      activeQuiz: this.activeQuiz ? {
+        studentId: this.activeQuiz.studentId,
+        studentName: this.activeQuiz.studentName,
+        timeRemaining: Math.ceil(this.activeQuiz.timeRemaining)
+      } : null,
       boss: this.boss.isBossMode ? {
         isBossMode: true,
         hp: Math.round(this.boss.hp),
@@ -897,6 +1109,12 @@ class Room {
       logMsg = `🧪 Halbina przyłapała ${student.name} w kałuży kwasu siarkowego! (+1 Uwaga)`;
     } else if (reason === 'EXAM') {
       logMsg = `📝 ${student.name} oberwał latającą jedynką z kartkówki! (+1 Uwaga)`;
+    } else if (reason === 'QUIZ_FAIL') {
+      logMsg = `🚨 ${student.name} dostał pizdę na kartkówce od Halbina: "TY KURWO GŁUPIA!" (+1 Uwaga)`;
+    } else if (reason === 'DRAWING_DICK') {
+      logMsg = `🚨 ${student.name} narysował kutasa na kartkówce dla Halbina: "TY SOBIE ZE MNIE ŻARTUJESZ?!" (+1 Uwaga)`;
+    } else if (reason === 'SPIT_PAPER') {
+      logMsg = `🚨 ${student.name} opluł kartkówkę i oddał Halbinie: "TY SOBIE ZE MNIE ŻARTUJESZ?!" (+1 Uwaga)`;
     } else {
       logMsg = `⚠️ Halbina przyłapała ${student.name} poza ławką! (+1 Uwaga)`;
     }
@@ -1332,18 +1550,178 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Human Halbina controls
+  // Human Halbina controls (Turns for 2s, 5s cooldown)
   socket.on('teacher_toggle_look', () => {
     if (!currentRoom || currentRoom.state !== 'IN_GAME') return;
     if (currentRoom.teacherId !== socket.id) return;
 
     if (currentRoom.teacher.state === 'BOARD') {
+      if (currentRoom.teacherTurnCooldown > 0) {
+        return socket.emit('inspection_failed', { message: `Odczekaj cooldown obrotu: ${Math.ceil(currentRoom.teacherTurnCooldown)}s` });
+      }
       currentRoom.teacher.state = 'CLASS';
-      io.to(currentRoom.code).emit('teacher_turned', { state: 'CLASS' });
+      currentRoom.teacherTurnDuration = 2.0; // Looks at class for exactly 2 seconds
+      currentRoom.teacher.inspectionsThisTurn = 0;
+      io.to(currentRoom.code).emit('teacher_turned', { state: 'CLASS', duration: 2.0 });
     } else {
+      // Manual quick return
       currentRoom.teacher.state = 'BOARD';
-      io.to(currentRoom.code).emit('teacher_turned', { state: 'BOARD' });
+      currentRoom.teacherTurnCooldown = 5.0; // 5s cooldown
+      io.to(currentRoom.code).emit('teacher_turned', { state: 'BOARD', cooldown: 5.0 });
     }
+  });
+
+  // Human Halbina triggers pop quiz (When anger >= 50%)
+  socket.on('teacher_trigger_quiz', ({ targetStudentId }) => {
+    if (!currentRoom || currentRoom.state !== 'IN_GAME') return;
+    if (currentRoom.teacherId !== socket.id) return;
+    if (currentRoom.teacher.anger < 50) {
+      return socket.emit('inspection_failed', { message: 'Potrzebujesz min. 50% wkurwienia, aby wziąć ucznia do odpowiedzi!' });
+    }
+    if (currentRoom.popQuizCooldown > 0 || currentRoom.activeQuiz) {
+      return socket.emit('inspection_failed', { message: 'Kartkówka jest na cooldownie!' });
+    }
+
+    let target = null;
+    if (targetStudentId) {
+      target = currentRoom.players.get(targetStudentId);
+    }
+    if (!target || target.role !== 'STUDENT' || target.isEliminated) {
+      const activeStudents = Array.from(currentRoom.players.values()).filter(p => p.role === 'STUDENT' && !p.isEliminated);
+      if (activeStudents.length > 0) {
+        target = activeStudents[Math.floor(Math.random() * activeStudents.length)];
+      }
+    }
+
+    if (target) {
+      currentRoom.startPopQuiz(target);
+    }
+  });
+
+  // Student submits answer to quiz
+  socket.on('quiz_submit_answer', ({ selectedOptionIndex }) => {
+    if (!currentRoom || currentRoom.state !== 'IN_GAME' || !currentRoom.activeQuiz) return;
+    if (currentRoom.activeQuiz.studentId !== socket.id) return;
+
+    const quiz = currentRoom.activeQuiz;
+    const student = currentRoom.players.get(socket.id);
+    currentRoom.activeQuiz = null;
+    io.to(currentRoom.code).emit('pop_quiz_closed');
+
+    if (!student) return;
+
+    // Check if student drew a dick on paper
+    if (quiz.hasDick) {
+      currentRoom.setTeacherSpeech("Ty sobie ze mnie żartujesz pajacu głupi?!", 5.0);
+      const dickMsg = `🍆 ${student.name} oddał kartkówkę z narysowanym KUTASEM! Halbina krzyczy: "TY SOBIE ZE MNIE ŻARTUJESZ PAJACU GŁUPI?!"`;
+      currentRoom.roundLogs.unshift(dickMsg);
+      currentRoom.penalizeStudent(student, 'DRAWING_DICK');
+      io.to(currentRoom.code).emit('showcase_paper', {
+        type: 'dick',
+        studentName: student.name,
+        message: dickMsg
+      });
+      return;
+    }
+
+    // Check if student spat on paper
+    if (quiz.isSpit) {
+      currentRoom.setTeacherSpeech("Ty sobie ze mnie żartujesz pajacu głupi?!", 5.0);
+      const spitMsg = `💦 ${student.name} oddał OPLUTĄ KARTKÓWKĘ! Halbina krzyczy: "TY SOBIE ZE MNIE ŻARTUJESZ PAJACU GŁUPI?!"`;
+      currentRoom.roundLogs.unshift(spitMsg);
+      currentRoom.penalizeStudent(student, 'SPIT_PAPER');
+      io.to(currentRoom.code).emit('showcase_paper', {
+        type: 'spit',
+        studentName: student.name,
+        message: spitMsg
+      });
+      return;
+    }
+
+    if (selectedOptionIndex === quiz.correctIndex) {
+      // Correct answer!
+      student.points += 350;
+      currentRoom.teacher.anger = Math.max(0, currentRoom.teacher.anger - 25);
+      currentRoom.setTeacherSpeech("O dziwo dobrze, siadaj na miejsce...", 3.5);
+      const winMsg = `✅ ${student.name} odpowiedział poprawnie na kartkówce z chemii! (+350 pkt respektu, -25% wkurwienia)`;
+      currentRoom.roundLogs.unshift(winMsg);
+      io.to(currentRoom.code).emit('pop_quiz_result', {
+        success: true,
+        studentName: student.name,
+        message: winMsg
+      });
+    } else {
+      // Wrong answer -> "Ty kurwo głupia!"
+      currentRoom.penalizeStudent(student, 'QUIZ_FAIL');
+      currentRoom.setTeacherSpeech("Ty kurwo głupia!", 4.0);
+      const failMsg = `❌ ${student.name} odpowiedział ŹLE na kartkówce! Halbina krzyczy: "TY KURWO GŁUPIA!" (+1 Uwaga)`;
+      currentRoom.roundLogs.unshift(failMsg);
+      io.to(currentRoom.code).emit('pop_quiz_result', {
+        success: false,
+        studentName: student.name,
+        message: failMsg
+      });
+    }
+  });
+
+  // Student cheats with phone during quiz
+  socket.on('quiz_cheat_phone', () => {
+    if (!currentRoom || currentRoom.state !== 'IN_GAME' || !currentRoom.activeQuiz) return;
+    if (currentRoom.activeQuiz.studentId !== socket.id) return;
+
+    const student = currentRoom.players.get(socket.id);
+    if (!student) return;
+
+    const isLooking = currentRoom.teacher.state === 'CLASS' || currentRoom.teacher.state === 'RAGE';
+    const inVision = isStudentInVisionCone(student.x, student.y, currentRoom.teacher.x, currentRoom.teacher.y);
+    const inSmoke = student.isInSmoke;
+
+    if (isLooking && inVision && !inSmoke) {
+      // CAUGHT RED-HANDED WITH PHONE -> STRAIGHT TO DIRECTOR!
+      currentRoom.activeQuiz = null;
+      io.to(currentRoom.code).emit('pop_quiz_closed');
+
+      student.isEliminated = true;
+      student.eliminationReason = 'Przyłapany na ściąganiu z telefonu na kartkówce!';
+      student.uwagi = 3;
+
+      currentRoom.setTeacherSpeech("DO DYREKTORA WYPIERDALAJ Z TYM TELEFONEM!", 5.0);
+      const expellMsg = `🚨 ${student.name} został PRZYŁAPANY NA TELEFONIE podczas kartkówki i leci prosto do DYREKTORA!`;
+      currentRoom.roundLogs.unshift(expellMsg);
+
+      io.to(currentRoom.code).emit('student_expelled', {
+        playerId: student.id,
+        playerName: student.name,
+        message: expellMsg
+      });
+    } else {
+      // Successful phone cheat!
+      student.points += 100;
+      socket.emit('quiz_phone_success', {
+        correctIndex: currentRoom.activeQuiz.correctIndex,
+        message: '📱 Ściągnięto poprawną odpowiedź z telefonu! (+100 pkt)'
+      });
+    }
+  });
+
+  // Student spits on quiz paper
+  socket.on('quiz_spit_paper', () => {
+    if (!currentRoom || currentRoom.state !== 'IN_GAME' || !currentRoom.activeQuiz) return;
+    if (currentRoom.activeQuiz.studentId !== socket.id) return;
+    if (currentRoom.activeQuiz.spitCooldown > 0) return;
+
+    currentRoom.activeQuiz.isSpit = true;
+    currentRoom.activeQuiz.spitCooldown = 5.0; // 5s cooldown
+    socket.emit('quiz_spit_success', { message: '💦 Oplułeś kartkówkę! Na środku widnieje wielka plama śliny!' });
+  });
+
+  // Student draws a dick on quiz paper
+  socket.on('quiz_draw_dick', () => {
+    if (!currentRoom || currentRoom.state !== 'IN_GAME' || !currentRoom.activeQuiz) return;
+    if (currentRoom.activeQuiz.studentId !== socket.id) return;
+
+    currentRoom.activeQuiz.hasDick = true;
+    socket.emit('quiz_dick_success', { message: '✏️ Narysowałeś dorodnego kutasa na kartkówce długopisem!' });
   });
 
   socket.on('return_to_lobby', () => {

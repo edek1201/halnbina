@@ -354,13 +354,161 @@
         </div>
         <div class="teacher-actions">
           <span id="teacherInspectBadge" class="inspect-badge ready">🔍 Przegląd: DOSTĘPNY (Kliknij ucznia)</span>
+          <button id="btnTeacherQuiz" class="btn btn-primary" title="Weź ucznia do odpowiedzi (Wymaga min. 50% wkurwienia)">
+            📢 DO ODPOWIEDZI! (50%+)
+          </button>
           <button id="btnTeacherTurn" class="btn btn-warning btn-turn">
-            🔄 OBRÓĆ SIĘ DO KLASY / PISZ NA TABLICY (SPACJA)
+            🔄 OBRÓĆ SIĘ (2s) / TABLICA (SPACJA)
           </button>
         </div>
       </div>
     </div>
   </main>
+
+  <!-- SCREEN 3.5: POP QUIZ MODAL (KARTKÓWKA Z CHEMII) -->
+  <div id="modalPopQuiz" class="modal-overlay">
+    <div class="quiz-sheet-container">
+      <!-- Notebook Paper Sheet -->
+      <div class="notebook-sheet" id="quizNotebookSheet">
+        <div class="notebook-holes">
+          <span></span><span></span><span></span>
+        </div>
+        <div class="red-margin-line"></div>
+
+        <div class="sheet-header">
+          <div class="teacher-threat">
+            <span class="threat-avatar">👩‍🏫</span>
+            <div class="threat-text">
+              <strong class="threat-quote">"MIARKA SIĘ PRZEBRAŁA SKURWYSYNIE JEBANY DO ODPOWIEDZI!"</strong>
+              <span class="sheet-title">🧪 KARTKÓWKA Z CHEMII (TECHNIKUM KLASA 2)</span>
+            </div>
+          </div>
+          <div class="quiz-timer-box">
+            <span class="timer-label">CZAS:</span>
+            <span id="quizTimerText" class="timer-countdown">15.0s</span>
+            <div class="quiz-timer-bar">
+              <div id="quizTimerFill" class="quiz-timer-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wet paper notice if isWet is true -->
+        <div id="wetPaperNotice" class="wet-banner" style="display: none;">
+          💦 <strong>UWAGA: Kartkówka jest cała mokra i ocieka cieczą!</strong>
+        </div>
+
+        <!-- Question Body -->
+        <div class="quiz-question-box">
+          <span class="q-number">ZADANIE 1:</span>
+          <p id="popQuizQuestionText" class="quiz-question-text">Treść pytania chemicznego...</p>
+        </div>
+
+        <!-- Multiple Choice Options (A, B, C, D) -->
+        <div class="quiz-options-grid" id="quizOptionsGrid">
+          <button class="quiz-opt-btn" data-opt="0">
+            <span class="opt-letter">A</span>
+            <span class="opt-text" id="quizOpt0">Odpowiedź A</span>
+          </button>
+          <button class="quiz-opt-btn" data-opt="1">
+            <span class="opt-letter">B</span>
+            <span class="opt-text" id="quizOpt1">Odpowiedź B</span>
+          </button>
+          <button class="quiz-opt-btn" data-opt="2">
+            <span class="opt-letter">C</span>
+            <span class="opt-text" id="quizOpt2">Odpowiedź C</span>
+          </button>
+          <button class="quiz-opt-btn" data-opt="3">
+            <span class="opt-letter">D</span>
+            <span class="opt-text" id="quizOpt3">Odpowiedź D</span>
+          </button>
+        </div>
+
+        <!-- Drawings & Spit Overlay on Paper -->
+        <div class="paper-artwork-area">
+          <!-- Spit Stain -->
+          <div id="spitArtwork" class="spit-stain" style="display: none;">
+            <div class="spit-bubble"></div>
+            <span class="spit-tag">💦 OPLUTA ŚLINĄ!</span>
+          </div>
+
+          <!-- Hand-Drawn Dick Artwork -->
+          <div id="dickArtwork" class="dick-drawing" style="display: none;">
+            <svg viewBox="0 0 160 120" class="dick-svg">
+              <!-- Left ball -->
+              <ellipse cx="40" cy="85" rx="22" ry="20" fill="none" stroke="#1b3b82" stroke-width="3" stroke-dasharray="2 1" />
+              <!-- Right ball -->
+              <ellipse cx="78" cy="88" rx="22" ry="20" fill="none" stroke="#1b3b82" stroke-width="3" />
+              <!-- Shaft -->
+              <path d="M 45 70 C 45 40, 52 25, 54 18 C 55 12, 65 12, 66 18 C 68 25, 75 40, 75 70" fill="none" stroke="#1b3b82" stroke-width="3.5" />
+              <!-- Glans line -->
+              <path d="M 49 24 C 58 20, 62 20, 71 24" fill="none" stroke="#1b3b82" stroke-width="3" />
+              <line x1="60" y1="13" x2="60" y2="21" stroke="#1b3b82" stroke-width="2.5" />
+              <!-- Vein -->
+              <path d="M 54 58 Q 63 50 56 36" fill="none" stroke="#2551a3" stroke-width="2" />
+              <!-- Spurts -->
+              <path d="M 52 8 Q 45 4 40 5" fill="none" stroke="#2980b9" stroke-width="2" stroke-linecap="round" />
+              <path d="M 60 7 Q 60 0 62 -4" fill="none" stroke="#2980b9" stroke-width="2" stroke-linecap="round" />
+              <path d="M 68 8 Q 75 4 80 5" fill="none" stroke="#2980b9" stroke-width="2" stroke-linecap="round" />
+              <!-- Hair squiggles -->
+              <path d="M 28 88 Q 24 94 20 86" fill="none" stroke="#111" stroke-width="1.5" />
+              <path d="M 88 90 Q 94 96 98 88" fill="none" stroke="#111" stroke-width="1.5" />
+            </svg>
+            <span class="pen-signature">~ autor: uczeń</span>
+          </div>
+        </div>
+
+        <!-- Student Cheating & Mischief Actions Bar -->
+        <div class="sheet-actions-footer">
+          <div class="mischief-buttons">
+            <button id="btnQuizPhone" class="btn-mischief phone-btn" title="Ściągaj z telefonu! Jeśli Halbina patrzy - wylatujesz do dyrektora!">
+              📱 <strong>Ściągaj z telefonu</strong>
+            </button>
+            <button id="btnQuizSpit" class="btn-mischief spit-btn" title="Opluj kartkę (cooldown 5s)">
+              💦 <strong>Opluj kartkę (5s)</strong>
+            </button>
+            <button id="btnQuizDick" class="btn-mischief dick-btn" title="Narysuj dorodnego kutasa długopisem!">
+              ✏️ <strong>Narysuj kutasa</strong>
+            </button>
+          </div>
+
+          <div class="submit-action">
+            <button id="btnQuizSubmit" class="btn btn-primary btn-large btn-handin" disabled>
+              📥 Oddaj kartkówkę
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3.6: SHOWCASE PAPER MODAL (POKAZ ODDANEJ KARTKÓWKI NA ŚRODKU SALI) -->
+  <div id="modalShowcasePaper" class="modal-overlay">
+    <div class="showcase-card">
+      <div class="showcase-banner">
+        <h2>🔥 "TY SOBIE ZE MNIE ŻARTUJESZ PAJACU GŁUPI?!" 🔥</h2>
+        <p id="showcaseSubtitle">Katarzyna Halbina pokazuje klasie Twoje bezczelne dzieło!</p>
+      </div>
+
+      <div class="showcase-sheet" id="showcaseSheetDisplay">
+        <div class="notebook-holes"><span></span><span></span><span></span></div>
+        <div class="red-margin-line"></div>
+        <div class="showcase-header">
+          <span class="showcase-author" id="showcaseStudentTag">Uczeń: Romanowski</span>
+          <span class="showcase-grade">OCENA: 1 (NDST!) ❌</span>
+        </div>
+
+        <div class="showcase-centerpiece" id="showcaseCenterpiece">
+          <!-- Dynamically inserted Dick or Spit presentation -->
+        </div>
+      </div>
+
+      <div class="showcase-footer">
+        <button id="btnCloseShowcase" class="btn btn-outline">
+          ✖ Zamknij podgląd
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- SCREEN 4: GAME OVER MODAL -->
   <div id="modalGameOver" class="modal-overlay">

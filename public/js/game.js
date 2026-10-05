@@ -70,7 +70,35 @@
   const studentControls = document.getElementById('studentControls');
   const teacherControls = document.getElementById('teacherControls');
   const btnTeacherTurn = document.getElementById('btnTeacherTurn');
+  const btnTeacherQuiz = document.getElementById('btnTeacherQuiz');
   const teacherInspectBadge = document.getElementById('teacherInspectBadge');
+
+  // Pop Quiz DOM
+  const modalPopQuiz = document.getElementById('modalPopQuiz');
+  const quizNotebookSheet = document.getElementById('quizNotebookSheet');
+  const quizTimerText = document.getElementById('quizTimerText');
+  const quizTimerFill = document.getElementById('quizTimerFill');
+  const wetPaperNotice = document.getElementById('wetPaperNotice');
+  const popQuizQuestionText = document.getElementById('popQuizQuestionText');
+  const quizOptBtns = [
+    document.getElementById('quizOpt0'),
+    document.getElementById('quizOpt1'),
+    document.getElementById('quizOpt2'),
+    document.getElementById('quizOpt3')
+  ];
+  const quizOptBtnContainers = document.querySelectorAll('.quiz-opt-btn');
+  const spitArtwork = document.getElementById('spitArtwork');
+  const dickArtwork = document.getElementById('dickArtwork');
+  const btnQuizPhone = document.getElementById('btnQuizPhone');
+  const btnQuizSpit = document.getElementById('btnQuizSpit');
+  const btnQuizDick = document.getElementById('btnQuizDick');
+  const btnQuizSubmit = document.getElementById('btnQuizSubmit');
+
+  // Showcase Paper DOM
+  const modalShowcasePaper = document.getElementById('modalShowcasePaper');
+  const showcaseStudentTag = document.getElementById('showcaseStudentTag');
+  const showcaseCenterpiece = document.getElementById('showcaseCenterpiece');
+  const btnCloseShowcase = document.getElementById('btnCloseShowcase');
 
   // Alert & Intro Overlays
   const alarmOverlay = document.getElementById('alarmOverlay');
@@ -103,6 +131,14 @@
   let isCheating = false;
   let paperCooldown = false;
   let hoveredStudentId = null;
+
+  // Pop Quiz state
+  let selectedQuizOption = null;
+  let quizCountdownInterval = null;
+  let quizTimeRemaining = 15.0;
+  let spitCooldownSeconds = 0;
+  let spitCooldownInterval = null;
+  let showcaseAutoCloseTimeout = null;
 
   // Local movement
   let posX = 500;
@@ -352,6 +388,65 @@
       socket.emit('teacher_toggle_look');
     }
   });
+
+  // Teacher pop quiz trigger button (Anger >= 50%)
+  if (btnTeacherQuiz) {
+    btnTeacherQuiz.addEventListener('click', () => {
+      if (myRole === 'TEACHER') {
+        socket.emit('teacher_trigger_quiz', {});
+      }
+    });
+  }
+
+  // Pop Quiz: Multiple Choice Buttons
+  quizOptBtnContainers.forEach(btn => {
+    btn.addEventListener('click', () => {
+      quizOptBtnContainers.forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedQuizOption = parseInt(btn.dataset.opt, 10);
+      btnQuizSubmit.disabled = false;
+    });
+  });
+
+  // Pop Quiz: Cheat with Phone
+  if (btnQuizPhone) {
+    btnQuizPhone.addEventListener('click', () => {
+      socket.emit('quiz_cheat_phone');
+    });
+  }
+
+  // Pop Quiz: Spit on Paper
+  if (btnQuizSpit) {
+    btnQuizSpit.addEventListener('click', () => {
+      if (spitCooldownSeconds > 0) return;
+      socket.emit('quiz_spit_paper');
+    });
+  }
+
+  // Pop Quiz: Draw a Dick
+  if (btnQuizDick) {
+    btnQuizDick.addEventListener('click', () => {
+      socket.emit('quiz_draw_dick');
+    });
+  }
+
+  // Pop Quiz: Submit / Hand-in Paper
+  if (btnQuizSubmit) {
+    btnQuizSubmit.addEventListener('click', () => {
+      socket.emit('quiz_submit_answer', {
+        selectedOptionIndex: selectedQuizOption !== null ? selectedQuizOption : -1
+      });
+      btnQuizSubmit.disabled = true;
+    });
+  }
+
+  // Showcase Paper Modal: Close
+  if (btnCloseShowcase) {
+    btnCloseShowcase.addEventListener('click', () => {
+      modalShowcasePaper.classList.remove('active');
+      if (showcaseAutoCloseTimeout) clearTimeout(showcaseAutoCloseTimeout);
+    });
+  }
 
   // Teacher Desk Inspection Target Tracking on Canvas
   canvas.addEventListener('mousemove', (e) => {
@@ -697,6 +792,192 @@
     }
   });
 
+  // Pop Quiz Announced to Class
+  socket.on('pop_quiz_announced', (data) => {
+    tickerText.textContent = data.message;
+    soundManager.playHalbinaRage();
+    halbinaStatusBadge.className = 'hud-item halbina-status status-class';
+    halbinaStatusText.textContent = `📢 "${data.speech}"`;
+  });
+
+  // Pop Quiz Modal Triggered for this Student
+  socket.on('pop_quiz_modal', (data) => {
+    selectedQuizOption = null;
+    popQuizQuestionText.textContent = data.question;
+
+    data.options.forEach((optText, idx) => {
+      if (quizOptBtns[idx]) quizOptBtns[idx].textContent = optText;
+    });
+
+    quizOptBtnContainers.forEach(btn => {
+      btn.classList.remove('selected', 'phone-hint');
+    });
+
+    if (btnQuizSubmit) btnQuizSubmit.disabled = true;
+
+    // Wet Paper Effect
+    if (data.isWet) {
+      quizNotebookSheet.classList.add('wet-paper');
+      wetPaperNotice.style.display = 'block';
+    } else {
+      quizNotebookSheet.classList.remove('wet-paper');
+      wetPaperNotice.style.display = 'none';
+    }
+
+    // Reset artwork
+    if (spitArtwork) spitArtwork.style.display = 'none';
+    if (dickArtwork) dickArtwork.style.display = 'none';
+    if (btnQuizSpit) {
+      btnQuizSpit.classList.remove('cooldown');
+      btnQuizSpit.textContent = '💦 Opluj kartkę (5s)';
+    }
+    spitCooldownSeconds = 0;
+
+    // Start 15s Countdown Bar
+    if (quizCountdownInterval) clearInterval(quizCountdownInterval);
+    quizTimeRemaining = data.timeRemaining || 15.0;
+    quizTimerText.textContent = `${quizTimeRemaining.toFixed(1)}s`;
+    quizTimerFill.style.width = '100%';
+
+    const startTime = performance.now();
+    const totalDuration = quizTimeRemaining * 1000;
+
+    quizCountdownInterval = setInterval(() => {
+      const elapsed = performance.now() - startTime;
+      const left = Math.max(0, (totalDuration - elapsed) / 1000);
+      quizTimerText.textContent = `${left.toFixed(1)}s`;
+      const pct = (left / 15.0) * 100;
+      quizTimerFill.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+
+      if (left <= 0) {
+        clearInterval(quizCountdownInterval);
+      }
+    }, 100);
+
+    modalPopQuiz.classList.add('active');
+  });
+
+  // Pop Quiz Modal Closed
+  socket.on('pop_quiz_closed', () => {
+    modalPopQuiz.classList.remove('active');
+    if (quizCountdownInterval) {
+      clearInterval(quizCountdownInterval);
+      quizCountdownInterval = null;
+    }
+  });
+
+  // Pop Quiz Result (Grading)
+  socket.on('pop_quiz_result', (data) => {
+    tickerText.textContent = data.message;
+    if (data.success) {
+      soundManager.playBell();
+    } else {
+      soundManager.playBusted();
+    }
+  });
+
+  // Phone Cheat Success
+  socket.on('quiz_phone_success', (data) => {
+    tickerText.textContent = data.message;
+    soundManager.playWhoosh();
+
+    if (data.correctIndex !== undefined && quizOptBtnContainers[data.correctIndex]) {
+      quizOptBtnContainers.forEach(b => b.classList.remove('selected', 'phone-hint'));
+      const targetBtn = quizOptBtnContainers[data.correctIndex];
+      targetBtn.classList.add('phone-hint', 'selected');
+      selectedQuizOption = data.correctIndex;
+      if (btnQuizSubmit) btnQuizSubmit.disabled = false;
+    }
+  });
+
+  // Spit on Paper Success
+  socket.on('quiz_spit_success', (data) => {
+    tickerText.textContent = data.message;
+    soundManager.playWhoosh();
+    if (spitArtwork) spitArtwork.style.display = 'flex';
+    if (btnQuizSubmit) btnQuizSubmit.disabled = false;
+
+    // Start 5s spit button cooldown
+    spitCooldownSeconds = 5;
+    if (btnQuizSpit) {
+      btnQuizSpit.classList.add('cooldown');
+      btnQuizSpit.textContent = `⏳ Opluj (${spitCooldownSeconds}s)`;
+    }
+
+    if (spitCooldownInterval) clearInterval(spitCooldownInterval);
+    spitCooldownInterval = setInterval(() => {
+      spitCooldownSeconds--;
+      if (spitCooldownSeconds <= 0) {
+        clearInterval(spitCooldownInterval);
+        if (btnQuizSpit) {
+          btnQuizSpit.classList.remove('cooldown');
+          btnQuizSpit.textContent = '💦 Opluj kartkę (5s)';
+        }
+      } else if (btnQuizSpit) {
+        btnQuizSpit.textContent = `⏳ Opluj (${spitCooldownSeconds}s)`;
+      }
+    }, 1000);
+  });
+
+  // Dick Drawing Success
+  socket.on('quiz_dick_success', (data) => {
+    tickerText.textContent = data.message;
+    soundManager.playWhoosh();
+    if (dickArtwork) dickArtwork.style.display = 'flex';
+    if (btnQuizSubmit) btnQuizSubmit.disabled = false;
+  });
+
+  // Showcase Paper in the Center of Classroom
+  socket.on('showcase_paper', (data) => {
+    soundManager.playHalbinaRage();
+    tickerText.textContent = data.message;
+
+    if (showcaseStudentTag) {
+      showcaseStudentTag.textContent = `Uczeń: ${data.studentName}`;
+    }
+
+    if (showcaseCenterpiece) {
+      if (data.type === 'dick') {
+        showcaseCenterpiece.innerHTML = `
+          <div class="showcase-dick">
+            <svg viewBox="0 0 160 120" class="dick-svg">
+              <ellipse cx="40" cy="85" rx="22" ry="20" fill="none" stroke="#1b3b82" stroke-width="3.5" stroke-dasharray="2 1" />
+              <ellipse cx="78" cy="88" rx="22" ry="20" fill="none" stroke="#1b3b82" stroke-width="3.5" />
+              <path d="M 45 70 C 45 40, 52 25, 54 18 C 55 12, 65 12, 66 18 C 68 25, 75 40, 75 70" fill="none" stroke="#1b3b82" stroke-width="4" />
+              <path d="M 49 24 C 58 20, 62 20, 71 24" fill="none" stroke="#1b3b82" stroke-width="3.5" />
+              <line x1="60" y1="13" x2="60" y2="21" stroke="#1b3b82" stroke-width="3" />
+              <path d="M 54 58 Q 63 50 56 36" fill="none" stroke="#2551a3" stroke-width="2.5" />
+              <path d="M 52 8 Q 45 4 40 5" fill="none" stroke="#2980b9" stroke-width="2.5" stroke-linecap="round" />
+              <path d="M 60 7 Q 60 0 62 -4" fill="none" stroke="#2980b9" stroke-width="2.5" stroke-linecap="round" />
+              <path d="M 68 8 Q 75 4 80 5" fill="none" stroke="#2980b9" stroke-width="2.5" stroke-linecap="round" />
+            </svg>
+            <span style="font-family:'Permanent Marker', cursive; font-size:1rem; color:#1b3b82; margin-top:8px;">
+              ✏️ NARYSOWANY KUTAS DŁUGOPISEM
+            </span>
+          </div>
+        `;
+      } else if (data.type === 'spit') {
+        showcaseCenterpiece.innerHTML = `
+          <div class="showcase-spit">
+            <div class="showcase-spit-puddle">
+              <span>💦 OPLUTA KARTKÓWKA!</span>
+            </div>
+            <span style="font-family:'Permanent Marker', cursive; font-size:1rem; color:#1e824c;">
+              💦 WIELKA PLAMA OBRZYDLIWEJ ŚLINY
+            </span>
+          </div>
+        `;
+      }
+    }
+
+    modalShowcasePaper.classList.add('active');
+
+    if (showcaseAutoCloseTimeout) clearTimeout(showcaseAutoCloseTimeout);
+    showcaseAutoCloseTimeout = setTimeout(() => {
+      modalShowcasePaper.classList.remove('active');
+    }, 5500);
+  });
+
   // Boss Fight Events
   socket.on('boss_phase_changed', (data) => {
     tickerText.textContent = data.message;
@@ -829,14 +1110,55 @@
         halbinaStatusText.textContent = '✏️ Halbina pisze na tablicy... (Można krzyczeć!)';
       }
 
-      // Teacher inspection badge update
-      if (myRole === 'TEACHER' && teacherInspectBadge) {
-        if (state.teacher.inspectionsThisTurn >= 1) {
-          teacherInspectBadge.className = 'inspect-badge used';
-          teacherInspectBadge.textContent = '🔍 Przegląd: WYKORZYSTANY (1 na obrót)';
-        } else {
-          teacherInspectBadge.className = 'inspect-badge ready';
-          teacherInspectBadge.textContent = '🔍 Przegląd: DOSTĘPNY (Kliknij ucznia)';
+      // Teacher controls update (Inspection, 2s/5s Turn cooldown, Quiz trigger)
+      if (myRole === 'TEACHER') {
+        if (teacherInspectBadge) {
+          if (state.teacher.inspectionsThisTurn >= 1) {
+            teacherInspectBadge.className = 'inspect-badge used';
+            teacherInspectBadge.textContent = '🔍 Przegląd: WYKORZYSTANY (1 na obrót)';
+          } else {
+            teacherInspectBadge.className = 'inspect-badge ready';
+            teacherInspectBadge.textContent = '🔍 Przegląd: DOSTĘPNY (Kliknij ucznia)';
+          }
+        }
+
+        // Update Teacher turn button (2s looking, 5s cooldown)
+        if (btnTeacherTurn) {
+          if (state.teacherTurnCooldown > 0) {
+            btnTeacherTurn.classList.add('cooldown');
+            btnTeacherTurn.disabled = true;
+            btnTeacherTurn.textContent = `⏳ OBRÓT COOLDOWN: ${Math.ceil(state.teacherTurnCooldown)}s`;
+          } else if (state.teacher.state === 'CLASS') {
+            btnTeacherTurn.classList.remove('cooldown');
+            btnTeacherTurn.disabled = false;
+            btnTeacherTurn.textContent = `👀 PATRZYSZ NA KLASĘ (2s)`;
+          } else {
+            btnTeacherTurn.classList.remove('cooldown');
+            btnTeacherTurn.disabled = false;
+            btnTeacherTurn.textContent = `🔄 OBRÓĆ SIĘ (2s) / TABLICA (SPACJA)`;
+          }
+        }
+
+        // Update Teacher Pop Quiz button (Anger >= 50%)
+        if (btnTeacherQuiz) {
+          const canQuiz = state.teacher.anger >= 50 && (!state.popQuizCooldown || state.popQuizCooldown <= 0) && !state.activeQuiz;
+          if (canQuiz) {
+            btnTeacherQuiz.classList.remove('cooldown');
+            btnTeacherQuiz.disabled = false;
+            btnTeacherQuiz.textContent = `📢 WEŹ DO ODPOWIEDZI! (GOTOWY)`;
+          } else if (state.activeQuiz) {
+            btnTeacherQuiz.classList.add('cooldown');
+            btnTeacherQuiz.disabled = true;
+            btnTeacherQuiz.textContent = `📢 KARTKÓWKA W TOKU...`;
+          } else if (state.popQuizCooldown > 0) {
+            btnTeacherQuiz.classList.add('cooldown');
+            btnTeacherQuiz.disabled = true;
+            btnTeacherQuiz.textContent = `⏳ KARTKÓWKA: ${Math.ceil(state.popQuizCooldown)}s`;
+          } else {
+            btnTeacherQuiz.classList.add('cooldown');
+            btnTeacherQuiz.disabled = true;
+            btnTeacherQuiz.textContent = `📢 DO ODPOWIEDZI (${state.teacher.anger}%/50%)`;
+          }
         }
       }
     }
