@@ -18,6 +18,11 @@
       <span class="title">LEKCJA CHEMII: HALBINA</span>
     </div>
     <div class="nav-controls">
+      <div class="volume-slider-group" title="Regulacja głośności">
+        <span class="vol-icon" id="volIcon">🔊</span>
+        <input type="range" id="volumeSlider" min="0" max="100" value="80" class="volume-range">
+        <span id="volumePercent" class="vol-label">80%</span>
+      </div>
       <button id="soundToggleBtn" class="nav-btn" title="Dźwięk włącz/wyłącz">
         🔊 <span id="soundStatusText">Dźwięk: WŁ</span>
       </button>
@@ -87,11 +92,29 @@
                 <p class="char-desc">Sprytny taktyk w czarnej puchówce z e-papierosem.</p>
                 <div class="char-power">
                   <span class="power-label">⚡ SUPERMOCE:</span>
-                  <span class="power-name">🚽 [Q] Mogę do toalety?! (+1s)</span>
-                  <span class="power-name">💨 [V] Zapal e-vape (chmura dymu)</span>
+                  <span class="power-name">🚽 [Q] Do toalety?! (+1s)</span>
+                  <span class="power-name">💨 [V] Zapal e-vape (dym)</span>
                 </div>
               </div>
               <div class="char-check">WYBIERZ</div>
+            </div>
+
+            <!-- Card 4: Filip Rzepa -->
+            <div class="char-card" data-character="rzepa" id="charCardRzepa">
+              <div class="char-card-portrait">
+                <img src="assets/rzepa_photo.png" alt="Filip Rzepa" class="char-photo">
+                <span class="char-badge badge-rzepa">Pitbull & Maczeta 🗡️</span>
+              </div>
+              <div class="char-info">
+                <h3 class="char-name">Filip Rzepa</h3>
+                <p class="char-desc">Umięśniony fighter w koszulce Octagon/Pitbull z torbą (Max 1 w lobby!).</p>
+                <div class="char-power">
+                  <span class="power-label">⚡ SUPERMOCE:</span>
+                  <span class="power-name">🌶️ [Q] Gaz 500ml (3s stun+blackout)</span>
+                  <span class="power-name">🗡️ [V] Maczeta (rozpędza policję)</span>
+                </div>
+              </div>
+              <div class="char-check" id="charCheckRzepa">WYBIERZ</div>
             </div>
           </div>
         </div>
@@ -103,6 +126,7 @@
             <div class="mode-select">
               <label for="gameModeSelect">Tryb lekcji:</label>
               <select id="gameModeSelect">
+                <option value="normal" selected>🏫 Normalna Lekcja (5 min, siedzisz w ławce, wstajesz [Z])</option>
                 <option value="classic">Klasyczny Szkolny Chaos (90s)</option>
                 <option value="hardcore">Szybka Kartkówka (60s, czujna Halbina)</option>
                 <option value="boss">💀 BOSS FIGHT: Starcie z Mega Halbiną! (120s)</option>
@@ -131,13 +155,13 @@
         <div class="rules-card">
           <h4>📜 Zasady Przetrwania na Lekcji:</h4>
           <ul>
-            <li>📢 <strong>Krzycz</strong>, gdy Halbina pisze na tablicy (zdobywasz Respekt)!</li>
-            <li>👀 <strong>Uważaj na odwrót</strong> – gdy patrzy na klasę, krzyk lub spacer po sali = natychmiastowa <strong>Uwaga</strong>!</li>
-            <li>🪑 <strong>Przesiadanie się do ławek</strong>: możesz siedzieć w dowolnej ławce, by nie dostać uwagi za chodzenie, ALE jeśli Halbina zrobi <strong>Przegląd Ławki</strong> (kliknie na Ciebie) i jesteś na złej ławce – dostajesz <strong>Uwagę</strong>!</li>
-            <li>🙈 <strong>Kucanie [C]</strong>: schować się pod ławką możesz <strong>tylko stojąc tuż przy ławce</strong>!</li>
-            <li>⚡ <strong>Supermoce</strong>: Romanowski (🥛 mleko: turbo sprint), Leszczyński (🕷️ kleszcz w babkę: +2s opóźnienia), Wolff (🚽 toaleta: +1s, 💨 e-vape: chmura dymu ukrywająca uczniów)!</li>
-            <li>💀 <strong>BOSS FIGHT</strong>: Epickie starcie z Mega Halbiną! Unikaj kwasu i kartkówek, rzucaj samolotami [F], zbieraj Super Kredę (85 DMG), a mleko Romanowskiego czyści kwas!</li>
-            <li>🚨 <strong>3 Uwagi = DYREKTOR</strong> i natychmiastowe wyrzucenie z lekcji!</li>
+            <li>🏫 <strong>Normalna Lekcja (5 min)</strong>: Zaczynasz usadzony w swojej ławce! Aby chodzić, musisz <strong>wstać [Z]</strong>. Stanie poza ławką, gdy Halbina patrzy = Uwaga!</li>
+            <li>🪑 <strong>Rzut krzesłem [X]</strong>: Złap krzesło i rzuć w Halbinę! Halbina natychmiast <strong>dzwoni po policję</strong>!</li>
+            <li>🗡️ <strong>Filip Rzepa & Maczeta [V]</strong>: Gdy wbijają szkieły po rzucie krzesłem, TYLKO Filip Rzepa może ich rozgonić maczetą [V]! Używa też <strong>Gazu pieprzowego 500ml [Q]</strong>, ogłuszając i oślepiając Halbinę na 3 sekundy! (Tylko 1 Rzepa w lobby).</li>
+            <li>✈️ <strong>Samolot z papieru [F]</strong>: Dostępny wyłącznie w trybie <strong>BOSS FIGHT</strong>!</li>
+            <li>👀 <strong>Blackout dla gracza Halbina</strong>: Pisząc na tablicy nie widzi sali, a po obrocie widzi wyłącznie swój stożek wzroku – reszta to czarna mgła!</li>
+            <li>📝 <strong>Karna kartkówka</strong>: Ściąganie z telefonu wymaga <strong>przytrzymania min. 4 sekundy</strong>! Kutasa możesz narysować ile razy chcesz, a opluwać kartkę co 3s (pisze 30s)!</li>
+            <li>🚨 <strong>3 Uwagi = DYREKTOR</strong> i wyrzucenie z sali!</li>
           </ul>
         </div>
       </div>
@@ -285,6 +309,11 @@
         🚨 SZKIEŁY JADĄ! SYRENY RADIOWOZU POD OKNAMI! 🚨
       </div>
 
+      <!-- Police Machete Rescue Alert Banner -->
+      <div id="macheteAlertBanner" class="machete-banner" style="display: none;">
+        🚨 SZKIEŁY WBIEGAJĄ DO SALI! FILIP RZEPA – ROZJEB ICH MACZETĄ [V]! 🚨
+      </div>
+
       <!-- Intro Bell Transition Overlay -->
       <div id="lessonIntroOverlay" class="intro-overlay">
         <div class="intro-box">
@@ -299,8 +328,8 @@
     <!-- Bottom Controls for Student -->
     <div id="studentControls" class="bottom-controls">
       <div class="shout-bar-header">
-        <span class="shout-title">📢 WYBIERZ KRZYK (Kliknij lub wciśnij klawisz 1, 2, 3):</span>
-        <span id="deskNotice" class="desk-indicator safe">🪑 Jesteś w swojej ławce (Bezpiecznie)</span>
+        <span class="shout-title">📢 WYBIERZ KRZYK (Kliknij lub klawisze 1, 2, 3):</span>
+        <span id="deskNotice" class="desk-indicator safe">🪑 Siedzisz w swojej ławce (Bezpiecznie)</span>
       </div>
 
       <div class="shout-cards-grid">
@@ -320,20 +349,26 @@
 
       <!-- Student Action Buttons & Badges -->
       <div class="student-actions-bar">
+        <button id="btnSeatToggle" class="action-btn btn-seat" title="Wstań z ławki lub usiądź (Klawisz Z)">
+          🪑 <strong id="btnSeatText">[Z] Wstań z ławki</strong>
+        </button>
+        <button id="btnThrowChair" class="action-btn btn-chair" title="Rzuć krzesłem w Halbinę! (Klawisz X - Uwaga: zadzwoni na policję!)">
+          🪑 <strong>[X] Rzuć krzesłem</strong>
+        </button>
         <button id="btnDuck" class="action-btn btn-duck" title="Kucnij za ławką (Klawisz C)">
-          🙈 <strong>[C] Kucnij za ławką</strong>
+          🙈 <strong>[C] Kucnij</strong>
         </button>
         <button id="btnCheat" class="action-btn btn-cheat" title="Ściągaj chemię (Przytrzymaj E)">
-          📝 <strong>[E] Ściągaj chemię (+35 pkt)</strong>
+          📝 <strong>[E] Ściągaj (+35 pkt)</strong>
         </button>
-        <button id="btnThrowPaper" class="action-btn btn-throw" title="Rzuć samolot z papieru / kredę (Klawisz F)">
+        <button id="btnThrowPaper" class="action-btn btn-throw" style="display: none;" title="Rzuć samolot z papieru / kredę (Klawisz F - tylko Boss Fight)">
           ✈️ <strong>[F] Samolot</strong>
         </button>
         <button id="btnAbility1" class="action-btn btn-power power-q" title="Główna supermoc postaci (Klawisz Q)">
-          <span id="btnAbility1Icon">🥛</span> <strong id="btnAbility1Text">[Q] Stwórz Mleko</strong>
+          <span id="btnAbility1Icon">🥛</span> <strong id="btnAbility1Text">[Q] Supermoc</strong>
         </button>
         <button id="btnAbility2" class="action-btn btn-power power-v" style="display: none;" title="Druga supermoc (Klawisz V)">
-          <span id="btnAbility2Icon">💨</span> <strong id="btnAbility2Text">[V] Zapal e-vape</strong>
+          <span id="btnAbility2Icon">💨</span> <strong id="btnAbility2Text">[V] Supermoc 2</strong>
         </button>
         <span id="superChalkBadge" class="super-chalk-badge" style="display: none;">
           🖍️ <strong>SUPER KREDA [F]! (85 DMG)</strong>
@@ -341,7 +376,7 @@
       </div>
 
       <div class="movement-hint">
-        <span>🎮 Sterowanie: <strong>[W][A][S][D]</strong> - Chodzenie | <strong>[1][2][3]</strong> - Krzyk | <strong>[C]</strong> - Kucnij przy ławce | <strong>[E]</strong> - Ściągaj | <strong>[F]</strong> - Samolot / Kreda | <strong>[Q] / [V]</strong> - Supermoce</span>
+        <span>🎮 Sterowanie: <strong>[W][A][S][D]</strong> - Ruch | <strong>[Z]</strong> - Wstań / Usiądź | <strong>[X]</strong> - Rzut krzesłem | <strong>[1][2][3]</strong> - Krzyk | <strong>[C]</strong> - Kucnij | <strong>[E]</strong> - Ściągaj | <strong>[Q]/[V]</strong> - Supermoce</span>
       </div>
     </div>
 
@@ -428,46 +463,44 @@
           <!-- Spit Stain -->
           <div id="spitArtwork" class="spit-stain" style="display: none;">
             <div class="spit-bubble"></div>
-            <span class="spit-tag">💦 OPLUTA ŚLINĄ!</span>
+            <span class="spit-tag" id="spitCountTag">💦 OPLUTA ŚLINĄ!</span>
           </div>
 
-          <!-- Hand-Drawn Dick Artwork -->
+          <!-- Hand-Drawn Dick Artwork & Gallery -->
           <div id="dickArtwork" class="dick-drawing" style="display: none;">
-            <svg viewBox="0 0 160 120" class="dick-svg">
-              <!-- Left ball -->
-              <ellipse cx="40" cy="85" rx="22" ry="20" fill="none" stroke="#1b3b82" stroke-width="3" stroke-dasharray="2 1" />
-              <!-- Right ball -->
-              <ellipse cx="78" cy="88" rx="22" ry="20" fill="none" stroke="#1b3b82" stroke-width="3" />
-              <!-- Shaft -->
-              <path d="M 45 70 C 45 40, 52 25, 54 18 C 55 12, 65 12, 66 18 C 68 25, 75 40, 75 70" fill="none" stroke="#1b3b82" stroke-width="3.5" />
-              <!-- Glans line -->
-              <path d="M 49 24 C 58 20, 62 20, 71 24" fill="none" stroke="#1b3b82" stroke-width="3" />
-              <line x1="60" y1="13" x2="60" y2="21" stroke="#1b3b82" stroke-width="2.5" />
-              <!-- Vein -->
-              <path d="M 54 58 Q 63 50 56 36" fill="none" stroke="#2551a3" stroke-width="2" />
-              <!-- Spurts -->
-              <path d="M 52 8 Q 45 4 40 5" fill="none" stroke="#2980b9" stroke-width="2" stroke-linecap="round" />
-              <path d="M 60 7 Q 60 0 62 -4" fill="none" stroke="#2980b9" stroke-width="2" stroke-linecap="round" />
-              <path d="M 68 8 Q 75 4 80 5" fill="none" stroke="#2980b9" stroke-width="2" stroke-linecap="round" />
-              <!-- Hair squiggles -->
-              <path d="M 28 88 Q 24 94 20 86" fill="none" stroke="#111" stroke-width="1.5" />
-              <path d="M 88 90 Q 94 96 98 88" fill="none" stroke="#111" stroke-width="1.5" />
-            </svg>
-            <span class="pen-signature">~ autor: uczeń</span>
+            <div id="dickGalleryContainer" class="dick-gallery-row">
+              <svg viewBox="0 0 160 120" class="dick-svg">
+                <ellipse cx="40" cy="85" rx="22" ry="20" fill="none" stroke="#1b3b82" stroke-width="3" stroke-dasharray="2 1" />
+                <ellipse cx="78" cy="88" rx="22" ry="20" fill="none" stroke="#1b3b82" stroke-width="3" />
+                <path d="M 45 70 C 45 40, 52 25, 54 18 C 55 12, 65 12, 66 18 C 68 25, 75 40, 75 70" fill="none" stroke="#1b3b82" stroke-width="3.5" />
+                <path d="M 49 24 C 58 20, 62 20, 71 24" fill="none" stroke="#1b3b82" stroke-width="3" />
+                <line x1="60" y1="13" x2="60" y2="21" stroke="#1b3b82" stroke-width="2.5" />
+                <path d="M 54 58 Q 63 50 56 36" fill="none" stroke="#2551a3" stroke-width="2" />
+                <path d="M 52 8 Q 45 4 40 5" fill="none" stroke="#2980b9" stroke-width="2" stroke-linecap="round" />
+                <path d="M 60 7 Q 60 0 62 -4" fill="none" stroke="#2980b9" stroke-width="2" stroke-linecap="round" />
+                <path d="M 68 8 Q 75 4 80 5" fill="none" stroke="#2980b9" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </div>
+            <span class="pen-signature" id="penSignatureTag">~ kutasy na kartce: x1</span>
           </div>
         </div>
 
         <!-- Student Cheating & Mischief Actions Bar -->
         <div class="sheet-actions-footer">
           <div class="mischief-buttons">
-            <button id="btnQuizPhone" class="btn-mischief phone-btn" title="Ściągaj z telefonu! Jeśli Halbina patrzy - wylatujesz do dyrektora!">
-              📱 <strong>Ściągaj z telefonu</strong>
+            <button id="btnQuizPhone" class="btn-mischief phone-btn" title="Ściągaj z telefonu! Przytrzymaj min. 4 sekundy. Jeśli Halbina patrzy - wylatujesz do dyrektora!">
+              <div class="phone-btn-content">
+                📱 <span id="btnQuizPhoneLabel">Ściągaj z tel. (trzymaj 4s)</span>
+              </div>
+              <div class="phone-progress-track">
+                <div id="quizPhoneProgressFill" class="phone-progress-fill" style="width: 0%;"></div>
+              </div>
             </button>
-            <button id="btnQuizSpit" class="btn-mischief spit-btn" title="Opluj kartkę (cooldown 5s)">
-              💦 <strong>Opluj kartkę (5s)</strong>
+            <button id="btnQuizSpit" class="btn-mischief spit-btn" title="Opluj kartkę! (Pisze 30 s, cooldown to 3 sekundy)">
+              💦 <span id="btnQuizSpitLabel">Opluj kartkę (30 s)</span>
             </button>
-            <button id="btnQuizDick" class="btn-mischief dick-btn" title="Narysuj dorodnego kutasa długopisem!">
-              ✏️ <strong>Narysuj kutasa</strong>
+            <button id="btnQuizDick" class="btn-mischief dick-btn" title="Narysuj kutasa! Możesz narysować ile chcesz!">
+              ✏️ <span>Narysuj kutasa (<strong id="dickCounterBadge">x0</strong>)</span>
             </button>
           </div>
 
@@ -498,7 +531,7 @@
         </div>
 
         <div class="showcase-centerpiece" id="showcaseCenterpiece">
-          <!-- Dynamically inserted Dick or Spit presentation -->
+          <!-- Dynamically inserted Dick gallery or Spit presentation -->
         </div>
       </div>
 

@@ -185,11 +185,11 @@ class Room {
     this.code = code;
     this.hostId = hostId;
     this.state = 'LOBBY'; // 'LOBBY' | 'STARTING' | 'IN_GAME' | 'ROUND_OVER'
-    this.mode = 'classic'; // 'classic' | 'hardcore' | 'boss'
+    this.mode = 'normal'; // 'normal' (default 5min) | 'classic' | 'hardcore' | 'boss'
     this.players = new Map();
     this.teacherId = null; // socket.id of teacher, or 'BOT'
-    this.lessonDuration = 90; // seconds
-    this.timeRemaining = 90;
+    this.lessonDuration = 300; // seconds (default 5 min for normal mode)
+    this.timeRemaining = 300;
     this.lastTickTime = Date.now();
     this.gameLoopInterval = null;
 
@@ -214,9 +214,10 @@ class Room {
     // Human teacher turn timers (turn to class for 2s, 5s cooldown)
     this.teacherTurnDuration = 0;
     this.teacherTurnCooldown = 0;
+    this.teacherStunTimer = 0; // Stun & blackout from pepper spray
 
     // Pop Quiz / Przepytywanka State (Anger >= 50%)
-    this.activeQuiz = null; // { studentId, studentName, question, options, correctIndex, isWet, isSpit, hasDick, timeRemaining, spitCooldown }
+    this.activeQuiz = null; // { studentId, studentName, question, options, correctIndex, isWet, isSpit, spitCount, hasDick, dickCount, isCheatingPhone, phoneCheatTimer, timeRemaining, spitCooldown }
     this.popQuizCooldown = 0;
 
     // Boss Fight State
@@ -235,7 +236,9 @@ class Room {
     // Police Raid & Chaos Mechanics
     this.policeShoutCount = 0;
     this.policeActiveTimer = 0;
-    this.projectiles = []; // paper airplanes, kleszcze, acid flasks, exams
+    this.policeRaidPending = false; // 8s alert after chair throw
+    this.policeRaidTimer = 0;
+    this.projectiles = []; // paper airplanes, kleszcze, chairs, pepper spray, acid flasks, exams
     this.smokeClouds = []; // vape smoke clouds
 
     this.roundLogs = [];
@@ -264,7 +267,11 @@ class Room {
       correctIndex: correctIdx,
       isWet: isWet,
       isSpit: false,
+      spitCount: 0,
       hasDick: false,
+      dickCount: 0,
+      isCheatingPhone: false,
+      phoneCheatTimer: 0,
       timeRemaining: 15.0,
       spitCooldown: 0
     };
@@ -299,14 +306,24 @@ class Room {
     const charNames = {
       romanowski: 'Romanowski',
       leszczynski: 'Leszczyński',
-      wolff: 'Wolff'
+      wolff: 'Wolff',
+      rzepa: 'Filip Rzepa'
     };
-    const validChar = ['romanowski', 'leszczynski', 'wolff'].includes(characterChoice) ? characterChoice : 'romanowski';
+
+    let requestedChar = ['romanowski', 'leszczynski', 'wolff', 'rzepa'].includes(characterChoice) ? characterChoice : 'romanowski';
+
+    // Filip Rzepa limit: Maximum 1 per lobby!
+    if (requestedChar === 'rzepa') {
+      const alreadyHasRzepa = Array.from(this.players.values()).some(p => p.character === 'rzepa');
+      if (alreadyHasRzepa) {
+        requestedChar = 'romanowski'; // Fallback to Romanowski if Rzepa is taken
+      }
+    }
 
     const player = {
       id: socketId,
-      character: validChar,
-      name: charNames[validChar],
+      character: requestedChar,
+      name: charNames[requestedChar],
       isHost: isHost,
       role: 'STUDENT', // 'STUDENT' | 'TEACHER'
       x: 0,
@@ -315,12 +332,14 @@ class Room {
       currentDeskIndex: -1,
       deskX: 0,
       deskY: 0,
+      isSitting: this.mode === 'normal', // In normal lesson mode, students start seated
       isMoving: false,
       isShouting: false,
       shoutText: '',
       shoutEndTime: 0,
       isDucking: false,
       isCheating: false,
+      chairCooldown: 0,
       paperCooldown: 0,
       speedBoostTimer: 0,
       abilityCooldowns: {
@@ -364,6 +383,9 @@ class Room {
   startGame(teacherSelection = 'random') {
     this.state = 'STARTING';
     this.roundLogs = [];
+    this.policeRaidPending = false;
+    this.policeRaidTimer = 0;
+    this.teacherStunTimer = 0;
 
     const playerList = Array.from(this.players.values());
 
@@ -395,7 +417,16 @@ class Room {
       this.roundLogs.unshift('💀 BOSS FIGHT ROZPOCZĘTY! Pokonajcie Mega Halbinę zanim minie czas!');
     } else {
       this.boss.isBossMode = false;
-      this.timeRemaining = this.lessonDuration;
+      if (this.mode === 'normal') {
+        this.lessonDuration = 300; // 5 minut
+        this.timeRemaining = 300;
+      } else if (this.mode === 'hardcore') {
+        this.lessonDuration = 60;
+        this.timeRemaining = 60;
+      } else {
+        this.lessonDuration = 90;
+        this.timeRemaining = 90;
+      }
 
       // Assign Katarzyna Halbina
       if (playerList.length === 1 || teacherSelection === 'bot') {
@@ -435,6 +466,9 @@ class Room {
       p.shoutText = '';
       p.isDucking = false;
       p.isCheating = false;
+      p.isSitting = (this.mode === 'normal' && p.role === 'STUDENT'); // Start seated in normal mode
+      p.chairCooldown = 0;
+      p.paperCooldown = 0;
       p.speedBoostTimer = 0;
       p.abilityCooldowns = { ability1: 0, ability2: 0 };
       p.shoutOptions = getRandomShouts(3);
@@ -586,11 +620,38 @@ class Room {
       this.teacher.anger = Math.max(0, this.teacher.anger - 2.5 * dt);
     }
 
-    // Police Raid Timer countdown
+    // Police Raid Timer countdown (active sirens)
     if (this.policeActiveTimer > 0) {
       this.policeActiveTimer -= dt;
       if (this.policeActiveTimer <= 0) {
         io.to(this.code).emit('police_raid_ended');
+      }
+    }
+
+    // Police Raid Pending (8s countdown after chair thrown before police storm in)
+    if (this.policeRaidPending) {
+      this.policeRaidTimer -= dt;
+      if (this.policeRaidTimer <= 0) {
+        this.policeRaidPending = false;
+        this.policeRaidTimer = 0;
+        // Police arrived! Class was not rescued by Filip Rzepa with machete
+        this.triggerPoliceRaid();
+        const raidMsg = '🚨 SZKIEŁY WPAROWAŁY DO SALI! Nikt nie rozgonił policji maczetą! Uczniowie dostają uwagi!';
+        this.roundLogs.unshift(raidMsg);
+        this.players.forEach(p => {
+          if (p.role === 'STUDENT' && !p.isEliminated && !p.isDucking && !p.isInSmoke) {
+            this.penalizeStudent(p, 'POLICE_RAID');
+          }
+        });
+      }
+    }
+
+    // Teacher Stun & Blinded Timer (Pepper spray 500ml)
+    if (this.teacherStunTimer > 0) {
+      this.teacherStunTimer -= dt;
+      if (this.teacherStunTimer <= 0) {
+        this.teacherStunTimer = 0;
+        io.to(this.code).emit('teacher_recovered');
       }
     }
 
@@ -625,7 +686,37 @@ class Room {
       if (this.activeQuiz.spitCooldown > 0) {
         this.activeQuiz.spitCooldown -= dt;
       }
-      if (this.activeQuiz.timeRemaining <= 0) {
+
+      // Check phone cheating progress & teacher vision
+      if (this.activeQuiz.isCheatingPhone) {
+        this.activeQuiz.phoneCheatTimer += dt;
+        const student = this.players.get(this.activeQuiz.studentId);
+        const teacherLooking = !this.boss.isBossMode && this.teacherStunTimer <= 0 && (this.teacher.state === 'CLASS' || this.teacher.state === 'RAGE');
+        if (teacherLooking && student && !student.isEliminated) {
+          const inVision = isStudentInVisionCone(student.x, student.y, this.teacher.x, this.teacher.y);
+          if (inVision && !student.isInSmoke) {
+            // CAUGHT RED-HANDED WITH PHONE -> STRAIGHT TO DIRECTOR!
+            this.activeQuiz.isCheatingPhone = false;
+            student.isEliminated = true;
+            student.eliminationReason = 'Przyłapany na ściąganiu z telefonu na kartkówce!';
+            student.uwagi = 3;
+
+            this.setTeacherSpeech("DO DYREKTORA WYPIERDALAJ Z TYM TELEFONEM!", 5.0);
+            const expellMsg = `🚨 ${student.name} został PRZYŁAPANY NA TELEFONIE podczas kartkówki i leci prosto do DYREKTORA!`;
+            this.roundLogs.unshift(expellMsg);
+
+            this.activeQuiz = null;
+            io.to(this.code).emit('pop_quiz_closed');
+            io.to(this.code).emit('student_expelled', {
+              playerId: student.id,
+              playerName: student.name,
+              message: expellMsg
+            });
+          }
+        }
+      }
+
+      if (this.activeQuiz && this.activeQuiz.timeRemaining <= 0) {
         const student = this.players.get(this.activeQuiz.studentId);
         this.activeQuiz = null;
         io.to(this.code).emit('pop_quiz_closed');
@@ -669,7 +760,7 @@ class Room {
       }
     }
 
-    // Projectiles (Paper airplanes, Kleszcze, Acid Flasks, Exams) update
+    // Projectiles (Paper airplanes, Kleszcze, Chairs, Pepper Spray, Acid Flasks, Exams) update
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const proj = this.projectiles[i];
       proj.t += dt / proj.duration;
@@ -684,7 +775,52 @@ class Room {
 
         const thrower = proj.ownerId ? this.players.get(proj.ownerId) : null;
 
-        if (proj.type === 'kleszcz') {
+        if (proj.type === 'chair') {
+          // Chair thrown hits Halbina!
+          io.to(this.code).emit('chair_hit_teacher', {
+            throwerName: thrower ? thrower.name : 'Uczeń',
+            x: this.teacher.x,
+            y: this.teacher.y
+          });
+
+          if (this.boss.isBossMode) {
+            this.damageBoss(70, thrower, 'RZUT KRZESŁEM');
+            this.boss.stunTimer = 2.0;
+            const chairMsg = `🪑 Krzesło uderzyło w Mega Halbinę! (-70 HP, 2s ogłuszenia!)`;
+            this.roundLogs.unshift(chairMsg);
+            io.to(this.code).emit('teacher_distracted', { message: chairMsg });
+          } else {
+            this.teacher.anger = 100;
+            const speech = "CO ZA BYDŁO! DZWONIĘ PO POLICJĘ!";
+            this.setTeacherSpeech(speech, 5.0);
+            this.policeRaidPending = true;
+            this.policeRaidTimer = 8.0;
+
+            const chairMsg = `🪑 Krzesło trafiło w Halbinę! Halbina wściekła (100% wkurwienia) DZWONI PO POLICJĘ! Szkieły wbijają za 8 sekund!`;
+            this.roundLogs.unshift(chairMsg);
+            io.to(this.code).emit('police_call_initiated', {
+              duration: 8.0,
+              speech: speech,
+              message: chairMsg
+            });
+            if (thrower) thrower.points += 250;
+          }
+        } else if (proj.type === 'pepper_spray') {
+          // Pepper Spray hits Halbina!
+          this.teacherStunTimer = 3.0;
+          if (this.boss.isBossMode) {
+            this.damageBoss(50, thrower, 'GAZ PIEPRZOWY');
+            this.boss.stunTimer = 3.0;
+          }
+          this.setTeacherSpeech("AARGH! MOJE OCZY! CO TO ZA GAZ?!", 3.5);
+          const sprayMsg = `🌶️ Gaz pieprzowy 500ml trafił Halbinę prosto w twarz! Jest OGŁUSZONA i OŚLEPIONA na 3 sekundy!`;
+          this.roundLogs.unshift(sprayMsg);
+          io.to(this.code).emit('teacher_stunned', {
+            duration: 3.0,
+            message: sprayMsg
+          });
+          if (thrower) thrower.points += 200;
+        } else if (proj.type === 'kleszcz') {
           if (this.boss.isBossMode) {
             // Boss Hit!
             this.damageBoss(65, thrower, 'RZUT KLESZCZEM');
@@ -858,8 +994,8 @@ class Room {
       });
     }
 
-    // CLASSIC / HARDCORE AI TEACHER LOGIC
-    if (!this.boss.isBossMode && this.teacher.isAI && this.teacher.state !== 'RAGE') {
+    // CLASSIC / HARDCORE / NORMAL AI TEACHER LOGIC
+    if (!this.boss.isBossMode && this.teacher.isAI && this.teacher.state !== 'RAGE' && this.teacherStunTimer <= 0) {
       this.teacher.stateTimer -= dt;
 
       // Small teacher patrol along blackboard
@@ -912,7 +1048,7 @@ class Room {
     let activeStudentsCount = 0;
     let eliminatedStudentsCount = 0;
 
-    const teacherIsLooking = !this.boss.isBossMode && (this.teacher.state === 'CLASS' || this.teacher.state === 'RAGE');
+    const teacherIsLooking = !this.boss.isBossMode && this.teacherStunTimer <= 0 && (this.teacher.state === 'CLASS' || this.teacher.state === 'RAGE');
 
     this.players.forEach(p => {
       if (p.role === 'TEACHER') {
@@ -933,6 +1069,7 @@ class Room {
       // Immunity timer countdown
       if (p.immunityTimer > 0) p.immunityTimer -= dt;
       if (p.paperCooldown > 0) p.paperCooldown -= dt;
+      if (p.chairCooldown > 0) p.chairCooldown -= dt;
       if (p.speedBoostTimer > 0) p.speedBoostTimer -= dt;
       if (p.abilityCooldowns.ability1 > 0) p.abilityCooldowns.ability1 -= dt;
       if (p.abilityCooldowns.ability2 > 0) p.abilityCooldowns.ability2 -= dt;
@@ -977,12 +1114,14 @@ class Room {
       // Ducking behind desk protects from wandering/idle detection!
       const isProtectedByDesk = p.isDucking && isAtAnyDesk;
 
-      // DETECTION BY TEACHER (Normal modes only)
+      // DETECTION BY TEACHER (Normal & Classic modes)
       // Only students in Halbina's vision cone get caught!
       if (teacherIsLooking && p.immunityTimer <= 0) {
         if (canTeacherSee) {
           if (p.isShouting) {
             this.penalizeStudent(p, 'SHOUTING');
+          } else if (this.mode === 'normal' && !p.isSitting && !isProtectedByDesk) {
+            this.penalizeStudent(p, 'WALKING_IN_CLASS');
           } else if (!isAtAnyDesk && !isProtectedByDesk) {
             this.penalizeStudent(p, 'OUT_OF_DESK');
           }
@@ -1000,6 +1139,8 @@ class Room {
     io.to(this.code).emit('game_tick', {
       timeRemaining: Math.ceil(this.timeRemaining),
       policeActive: this.policeActiveTimer > 0,
+      policeRaidPending: this.policeRaidPending,
+      policeRaidTimer: Math.max(0, Math.ceil(this.policeRaidTimer)),
       teacher: {
         x: this.teacher.x,
         y: this.teacher.y,
@@ -1008,6 +1149,8 @@ class Room {
         rageText: this.teacher.rageText,
         speechText: this.teacher.speechText,
         isAI: this.teacher.isAI,
+        isStunned: this.teacherStunTimer > 0,
+        stunTimer: Math.max(0, this.teacherStunTimer),
         teacherId: this.teacherId,
         inspectionsThisTurn: this.teacher.inspectionsThisTurn,
         turnDuration: Math.max(0, this.teacherTurnDuration),
@@ -1017,7 +1160,10 @@ class Room {
       activeQuiz: this.activeQuiz ? {
         studentId: this.activeQuiz.studentId,
         studentName: this.activeQuiz.studentName,
-        timeRemaining: Math.ceil(this.activeQuiz.timeRemaining)
+        timeRemaining: Math.ceil(this.activeQuiz.timeRemaining),
+        dickCount: this.activeQuiz.dickCount || 0,
+        spitCount: this.activeQuiz.spitCount || 0,
+        spitCooldown: Math.max(0, this.activeQuiz.spitCooldown || 0)
       } : null,
       boss: this.boss.isBossMode ? {
         isBossMode: true,
@@ -1066,6 +1212,8 @@ class Room {
         role: p.role,
         x: p.x,
         y: p.y,
+        isSitting: !!p.isSitting,
+        chairCooldown: Math.ceil(p.chairCooldown || 0),
         isMoving: p.isMoving,
         isShouting: p.isShouting,
         shoutText: p.shoutText,
@@ -1105,6 +1253,10 @@ class Room {
       const assigned = DESK_SLOTS.find(d => d.id === student.assignedDeskIndex);
       const assignedLabel = assigned ? assigned.label : `Ławka ${student.assignedDeskIndex + 1}`;
       logMsg = `🚨 Halbina sprawdziła ${student.name}: Siedzi na złej ławce (powinien być w ${assignedLabel})! (+1 Uwaga)`;
+    } else if (reason === 'WALKING_IN_CLASS') {
+      logMsg = `⚠️ Halbina przyłapała ${student.name}: Wstał z ławki i chodzi po klasie w trakcie lekcji! (+1 Uwaga)`;
+    } else if (reason === 'POLICE_RAID') {
+      logMsg = `🚨 ${student.name} został spisany przez policję podczas nalotu! (+1 Uwaga)`;
     } else if (reason === 'ACID') {
       logMsg = `🧪 Halbina przyłapała ${student.name} w kałuży kwasu siarkowego! (+1 Uwaga)`;
     } else if (reason === 'EXAM') {
@@ -1277,6 +1429,7 @@ io.on('connection', (socket) => {
       hostId: room.hostId,
       state: room.state,
       mode: room.mode,
+      rzepaTaken: Array.from(room.players.values()).some(p => p.character === 'rzepa'),
       players: Array.from(room.players.values())
     });
   });
@@ -1313,7 +1466,44 @@ io.on('connection', (socket) => {
       hostId: room.hostId,
       state: room.state,
       mode: room.mode,
+      rzepaTaken: Array.from(room.players.values()).some(p => p.character === 'rzepa'),
       players: Array.from(room.players.values())
+    });
+  });
+
+  // Switch character in lobby
+  socket.on('select_character', ({ character }, callback) => {
+    if (!currentRoom || currentRoom.state !== 'LOBBY') return;
+    const player = currentRoom.players.get(socket.id);
+    if (!player) return;
+
+    if (character === 'rzepa') {
+      const alreadyTaken = Array.from(currentRoom.players.values()).some(p => p.id !== socket.id && p.character === 'rzepa');
+      if (alreadyTaken) {
+        if (callback) callback({ success: false, message: 'Filip Rzepa jest już zajęty w tym lobby!' });
+        return;
+      }
+    }
+
+    const charNames = {
+      romanowski: 'Romanowski',
+      leszczynski: 'Leszczyński',
+      wolff: 'Wolff',
+      rzepa: 'Filip Rzepa'
+    };
+    const validChar = ['romanowski', 'leszczynski', 'wolff', 'rzepa'].includes(character) ? character : 'romanowski';
+    player.character = validChar;
+    player.name = charNames[validChar];
+
+    if (callback) callback({ success: true, character: validChar });
+
+    io.to(currentRoom.code).emit('room_updated', {
+      code: currentRoom.code,
+      hostId: currentRoom.hostId,
+      state: currentRoom.state,
+      mode: currentRoom.mode,
+      rzepaTaken: Array.from(currentRoom.players.values()).some(p => p.character === 'rzepa'),
+      players: Array.from(currentRoom.players.values())
     });
   });
 
@@ -1344,10 +1534,42 @@ io.on('connection', (socket) => {
     const player = currentRoom.players.get(socket.id);
     if (!player || player.isEliminated) return;
 
+    // In normal lesson mode, seated students cannot walk until standing up [Z]
+    if (player.isSitting) return;
+
     // Bounds checking
     player.x = Math.max(50, Math.min(950, x));
     player.y = Math.max(120, Math.min(650, y));
     player.isMoving = isMoving;
+  });
+
+  // Toggle seat [Z] (Stand up from desk or sit down)
+  socket.on('student_toggle_seat', (callback) => {
+    if (!currentRoom || currentRoom.state !== 'IN_GAME') return;
+    const player = currentRoom.players.get(socket.id);
+    if (!player || player.role !== 'STUDENT' || player.isEliminated) return;
+
+    if (player.isSitting) {
+      // Stand up
+      player.isSitting = false;
+      if (callback) callback({ success: true, isSitting: false, message: 'Wstałeś z ławki! Możesz chodzić [WASD].' });
+    } else {
+      // Sit down (must be near any desk)
+      if (isNearAnyDesk(player.x, player.y, 58)) {
+        player.isSitting = true;
+        const deskId = getDeskAtPosition(player.x, player.y);
+        if (deskId !== -1) {
+          const desk = DESK_SLOTS.find(d => d.id === deskId);
+          if (desk) {
+            player.x = desk.chairX;
+            player.y = desk.chairY;
+          }
+        }
+        if (callback) callback({ success: true, isSitting: true, message: 'Usiadłeś w ławce!' });
+      } else {
+        if (callback) callback({ success: false, message: 'Musisz podejść do ławki, aby na niej usiąść!' });
+      }
+    }
   });
 
   socket.on('shout_trigger', ({ shoutText }) => {
@@ -1383,12 +1605,48 @@ io.on('connection', (socket) => {
     player.isCheating = !!isCheating;
   });
 
-  // Paper Airplane Throw
+  // Throw Chair [X] (Hurls chair at teacher; triggers police phone call!)
+  socket.on('student_throw_chair', ({ targetX, targetY }) => {
+    if (!currentRoom || currentRoom.state !== 'IN_GAME') return;
+    const player = currentRoom.players.get(socket.id);
+    if (!player || player.role !== 'STUDENT' || player.isEliminated) return;
+    if (player.chairCooldown > 0) return;
+
+    player.chairCooldown = 15.0; // 15 seconds cooldown
+
+    const proj = {
+      id: 'chair_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+      type: 'chair',
+      ownerId: player.id,
+      ownerName: player.name,
+      startX: player.x,
+      startY: player.y - 15,
+      targetX: targetX || currentRoom.teacher.x,
+      targetY: targetY || currentRoom.teacher.y,
+      t: 0,
+      duration: 1.05
+    };
+
+    currentRoom.projectiles.push(proj);
+    const msg = `🪑 ${player.name} cisnął krzesłem w Halbinę!`;
+    currentRoom.roundLogs.unshift(msg);
+    io.to(currentRoom.code).emit('chair_thrown', {
+      projectile: proj,
+      message: msg
+    });
+  });
+
+  // Paper Airplane Throw (ONLY in Boss Fight mode!)
   socket.on('student_throw_paper', ({ targetX, targetY }) => {
     if (!currentRoom || currentRoom.state !== 'IN_GAME') return;
     const player = currentRoom.players.get(socket.id);
     if (!player || player.role !== 'STUDENT' || player.isEliminated) return;
     if (player.paperCooldown > 0) return;
+
+    // Strict constraint: Paper airplanes only in BOSS FIGHT
+    if (!currentRoom.boss || !currentRoom.boss.isBossMode) {
+      return socket.emit('action_failed', { message: 'Samolotów z papieru można używać WYŁĄCZNIE w trybie BOSS FIGHT!' });
+    }
 
     const isBoss = currentRoom.boss && currentRoom.boss.isBossMode;
     player.paperCooldown = isBoss ? 2.0 : 3.5;
@@ -1403,8 +1661,8 @@ io.on('connection', (socket) => {
       ownerName: player.name,
       startX: player.x,
       startY: player.y - 15,
-      targetX: targetX || (isBoss ? currentRoom.teacher.x : (200 + Math.random() * 600)),
-      targetY: targetY || (isBoss ? currentRoom.teacher.y : (60 + Math.random() * 50)),
+      targetX: targetX || currentRoom.teacher.x,
+      targetY: targetY || currentRoom.teacher.y,
       t: 0,
       duration: isChalk ? 0.95 : 1.1
     };
@@ -1548,12 +1806,84 @@ io.on('connection', (socket) => {
         cloud: cloud
       });
     }
+    // Filip Rzepa [Q]: Gaz pieprzowy 500ml (ogłuszenie na 3s, blackout i brak ruchu)
+    else if (abilityName === 'pepper_spray' && player.character === 'rzepa') {
+      if (player.abilityCooldowns.ability1 > 0) return;
+      player.abilityCooldowns.ability1 = 18.0;
+
+      const proj = {
+        id: 'spray_' + Date.now(),
+        type: 'pepper_spray',
+        ownerId: player.id,
+        ownerName: player.name,
+        startX: player.x,
+        startY: player.y - 12,
+        targetX: currentRoom.teacher.x,
+        targetY: currentRoom.teacher.y,
+        t: 0,
+        duration: 0.65
+      };
+      currentRoom.projectiles.push(proj);
+
+      const msg = `🌶️ ${player.name} (Filip Rzepa) wypuścił strumień z butli 500ml gazu pieprzowego prosto w Halbinę!`;
+      currentRoom.roundLogs.unshift(msg);
+      io.to(currentRoom.code).emit('ability_used', {
+        playerId: player.id,
+        playerName: player.name,
+        ability: 'pepper_spray',
+        message: msg,
+        projectile: proj
+      });
+    }
+    // Filip Rzepa [V]: Maczeta (ratuje klasę przed policją po rzucie krzesłem)
+    else if (abilityName === 'machete' && player.character === 'rzepa') {
+      if (player.abilityCooldowns.ability2 > 0) return;
+      player.abilityCooldowns.ability2 = 20.0;
+
+      if (currentRoom.policeRaidPending) {
+        // Rescues the classroom from impending police raid!
+        currentRoom.policeRaidPending = false;
+        currentRoom.policeRaidTimer = 0;
+        player.points += 500;
+        const rescueMsg = `🗡️ ${player.name} (Filip Rzepa) WPAROWAŁ Z MACZETĄ I ROZGONIŁ SZKIEŁY! Klasa uratowana przed policją! (+500 pkt)`;
+        currentRoom.roundLogs.unshift(rescueMsg);
+        io.to(currentRoom.code).emit('police_raid_rescued', {
+          heroId: player.id,
+          heroName: player.name,
+          message: rescueMsg
+        });
+      } else {
+        // Outside police raid: slash attacks teacher / boss
+        if (currentRoom.boss && currentRoom.boss.isBossMode) {
+          currentRoom.damageBoss(80, player, 'MACZETA RZEPY');
+          const slashMsg = `🗡️ Filip Rzepa zaatakował Mega Halbinę maczetą! Potężne 80 DMG!`;
+          currentRoom.roundLogs.unshift(slashMsg);
+          io.to(currentRoom.code).emit('teacher_distracted', { message: slashMsg });
+        } else {
+          currentRoom.teacher.state = 'BOARD';
+          currentRoom.teacher.stateTimer = 3.2;
+          const slashMsg = `🗡️ Filip Rzepa groźnie macha maczetą! Halbina kuli się przy tablicy ze strachu!`;
+          currentRoom.roundLogs.unshift(slashMsg);
+          io.to(currentRoom.code).emit('teacher_distracted', { message: slashMsg });
+        }
+      }
+
+      io.to(currentRoom.code).emit('ability_used', {
+        playerId: player.id,
+        playerName: player.name,
+        ability: 'machete',
+        message: `🗡️ Filip Rzepa użył maczety!`
+      });
+    }
   });
 
   // Human Halbina controls (Turns for 2s, 5s cooldown)
   socket.on('teacher_toggle_look', () => {
     if (!currentRoom || currentRoom.state !== 'IN_GAME') return;
     if (currentRoom.teacherId !== socket.id) return;
+    if (currentRoom.teacherStunTimer > 0) {
+      return socket.emit('inspection_failed', { message: 'Jesteś ogłuszona gazem pieprzowym! Nic nie widzisz!' });
+    }
 
     if (currentRoom.teacher.state === 'BOARD') {
       if (currentRoom.teacherTurnCooldown > 0) {
@@ -1610,14 +1940,16 @@ io.on('connection', (socket) => {
 
     if (!student) return;
 
-    // Check if student drew a dick on paper
+    // Check if student drew dicks on paper
     if (quiz.hasDick) {
+      const dickCount = quiz.dickCount || 1;
       currentRoom.setTeacherSpeech("Ty sobie ze mnie żartujesz pajacu głupi?!", 5.0);
-      const dickMsg = `🍆 ${student.name} oddał kartkówkę z narysowanym KUTASEM! Halbina krzyczy: "TY SOBIE ZE MNIE ŻARTUJESZ PAJACU GŁUPI?!"`;
+      const dickMsg = `🍆 ${student.name} oddał kartkówkę z narysowanymi KUTASAMI (${dickCount}x)! Halbina krzyczy: "TY SOBIE ZE MNIE ŻARTUJESZ PAJACU GŁUPI?!"`;
       currentRoom.roundLogs.unshift(dickMsg);
       currentRoom.penalizeStudent(student, 'DRAWING_DICK');
       io.to(currentRoom.code).emit('showcase_paper', {
         type: 'dick',
+        dickCount: dickCount,
         studentName: student.name,
         message: dickMsg
       });
@@ -1626,12 +1958,14 @@ io.on('connection', (socket) => {
 
     // Check if student spat on paper
     if (quiz.isSpit) {
+      const spitCount = quiz.spitCount || 1;
       currentRoom.setTeacherSpeech("Ty sobie ze mnie żartujesz pajacu głupi?!", 5.0);
-      const spitMsg = `💦 ${student.name} oddał OPLUTĄ KARTKÓWKĘ! Halbina krzyczy: "TY SOBIE ZE MNIE ŻARTUJESZ PAJACU GŁUPI?!"`;
+      const spitMsg = `💦 ${student.name} oddał OPLUTĄ KARTKÓWKĘ (${spitCount}x)! Halbina krzyczy: "TY SOBIE ZE MNIE ŻARTUJESZ PAJACU GŁUPI?!"`;
       currentRoom.roundLogs.unshift(spitMsg);
       currentRoom.penalizeStudent(student, 'SPIT_PAPER');
       io.to(currentRoom.code).emit('showcase_paper', {
         type: 'spit',
+        spitCount: spitCount,
         studentName: student.name,
         message: spitMsg
       });
@@ -1664,77 +1998,89 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Student cheats with phone during quiz
-  socket.on('quiz_cheat_phone', () => {
+  // Student starts cheating with phone during quiz (Requires holding min 4.0s!)
+  socket.on('quiz_cheat_phone_start', () => {
+    if (!currentRoom || currentRoom.state !== 'IN_GAME' || !currentRoom.activeQuiz) return;
+    if (currentRoom.activeQuiz.studentId !== socket.id) return;
+    currentRoom.activeQuiz.isCheatingPhone = true;
+    currentRoom.activeQuiz.phoneCheatTimer = 0;
+  });
+
+  socket.on('quiz_cheat_phone_stop', () => {
+    if (!currentRoom || !currentRoom.activeQuiz) return;
+    if (currentRoom.activeQuiz.studentId !== socket.id) return;
+    currentRoom.activeQuiz.isCheatingPhone = false;
+  });
+
+  socket.on('quiz_cheat_phone_finish', () => {
     if (!currentRoom || currentRoom.state !== 'IN_GAME' || !currentRoom.activeQuiz) return;
     if (currentRoom.activeQuiz.studentId !== socket.id) return;
 
+    const quiz = currentRoom.activeQuiz;
     const student = currentRoom.players.get(socket.id);
     if (!student) return;
 
-    const isLooking = currentRoom.teacher.state === 'CLASS' || currentRoom.teacher.state === 'RAGE';
-    const inVision = isStudentInVisionCone(student.x, student.y, currentRoom.teacher.x, currentRoom.teacher.y);
-    const inSmoke = student.isInSmoke;
-
-    if (isLooking && inVision && !inSmoke) {
-      // CAUGHT RED-HANDED WITH PHONE -> STRAIGHT TO DIRECTOR!
-      currentRoom.activeQuiz = null;
-      io.to(currentRoom.code).emit('pop_quiz_closed');
-
-      student.isEliminated = true;
-      student.eliminationReason = 'Przyłapany na ściąganiu z telefonu na kartkówce!';
-      student.uwagi = 3;
-
-      currentRoom.setTeacherSpeech("DO DYREKTORA WYPIERDALAJ Z TYM TELEFONEM!", 5.0);
-      const expellMsg = `🚨 ${student.name} został PRZYŁAPANY NA TELEFONIE podczas kartkówki i leci prosto do DYREKTORA!`;
-      currentRoom.roundLogs.unshift(expellMsg);
-
-      io.to(currentRoom.code).emit('student_expelled', {
-        playerId: student.id,
-        playerName: student.name,
-        message: expellMsg
+    // Verify student held for min 3.8s
+    if (quiz.phoneCheatTimer >= 3.8) {
+      quiz.isCheatingPhone = false;
+      student.points += 150;
+      socket.emit('quiz_phone_success', {
+        correctIndex: quiz.correctIndex,
+        message: '📱 Sukces! Ściągałeś 4 sekundy z telefonu i znasz poprawną odpowiedź! (+150 pkt)'
       });
     } else {
-      // Successful phone cheat!
-      student.points += 100;
-      socket.emit('quiz_phone_success', {
-        correctIndex: currentRoom.activeQuiz.correctIndex,
-        message: '📱 Ściągnięto poprawną odpowiedź z telefonu! (+100 pkt)'
-      });
+      socket.emit('action_failed', { message: 'Musisz przytrzymać ściąganie przez pełne 4 sekundy!' });
     }
   });
 
-  // Student spits on quiz paper
+  // Student spits on quiz paper (Cooldown: exactly 3 seconds!)
   socket.on('quiz_spit_paper', () => {
     if (!currentRoom || currentRoom.state !== 'IN_GAME' || !currentRoom.activeQuiz) return;
     if (currentRoom.activeQuiz.studentId !== socket.id) return;
     if (currentRoom.activeQuiz.spitCooldown > 0) return;
 
     currentRoom.activeQuiz.isSpit = true;
-    currentRoom.activeQuiz.spitCooldown = 5.0; // 5s cooldown
-    socket.emit('quiz_spit_success', { message: '💦 Oplułeś kartkówkę! Na środku widnieje wielka plama śliny!' });
+    currentRoom.activeQuiz.spitCount = (currentRoom.activeQuiz.spitCount || 0) + 1;
+    currentRoom.activeQuiz.spitCooldown = 3.0; // Exactly 3 seconds cooldown!
+
+    socket.emit('quiz_spit_success', {
+      spitCount: currentRoom.activeQuiz.spitCount,
+      cooldown: 3.0,
+      message: `💦 Oplułeś kartkówkę (#${currentRoom.activeQuiz.spitCount})! Wielka plama śliny powiększa się!`
+    });
   });
 
-  // Student draws a dick on quiz paper
+  // Student draws a dick on quiz paper (Can draw as many as they want!)
   socket.on('quiz_draw_dick', () => {
     if (!currentRoom || currentRoom.state !== 'IN_GAME' || !currentRoom.activeQuiz) return;
     if (currentRoom.activeQuiz.studentId !== socket.id) return;
 
     currentRoom.activeQuiz.hasDick = true;
-    socket.emit('quiz_dick_success', { message: '✏️ Narysowałeś dorodnego kutasa na kartkówce długopisem!' });
+    currentRoom.activeQuiz.dickCount = (currentRoom.activeQuiz.dickCount || 0) + 1;
+
+    socket.emit('quiz_dick_success', {
+      dickCount: currentRoom.activeQuiz.dickCount,
+      message: `✏️ Narysowałeś kutasa #${currentRoom.activeQuiz.dickCount} na kartkówce!`
+    });
   });
 
   socket.on('return_to_lobby', () => {
     if (!currentRoom || currentRoom.hostId !== socket.id) return;
     currentRoom.state = 'LOBBY';
+    currentRoom.policeRaidPending = false;
+    currentRoom.policeRaidTimer = 0;
+    currentRoom.teacherStunTimer = 0;
     currentRoom.players.forEach(p => {
       p.uwagi = 0;
       p.points = 0;
       p.isEliminated = false;
       p.isShouting = false;
+      p.isSitting = (currentRoom.mode === 'normal');
+      p.chairCooldown = 0;
     });
 
     io.to(currentRoom.code).emit('returned_to_lobby', {
+      rzepaTaken: Array.from(currentRoom.players.values()).some(p => p.character === 'rzepa'),
       players: Array.from(currentRoom.players.values())
     });
   });
@@ -1749,6 +2095,7 @@ io.on('connection', (socket) => {
           hostId: currentRoom.hostId,
           state: currentRoom.state,
           mode: currentRoom.mode,
+          rzepaTaken: Array.from(currentRoom.players.values()).some(p => p.character === 'rzepa'),
           players: Array.from(currentRoom.players.values())
         });
       }

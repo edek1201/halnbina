@@ -292,6 +292,16 @@ class SoundManager {
     rageOsc.stop(t + 2.0);
   }
 
+  setVolume(vol) {
+    this.volume = Math.max(0, Math.min(1, vol));
+    // Update any loaded audio elements
+    for (const key of Object.keys(this.audioFiles)) {
+      this.audioFiles[key].forEach(audio => {
+        audio.volume = this.volume;
+      });
+    }
+  }
+
   // Paper airplane throw whoosh
   playWhoosh() {
     if (this.isMuted || !this.audioCtx) return;
@@ -314,6 +324,282 @@ class SoundManager {
 
     osc.start(t);
     osc.stop(t + 0.35);
+  }
+
+  // Heavy wooden chair toss
+  playChairThrow() {
+    if (this.isMuted || !this.audioCtx) return;
+    this.resumeContext();
+
+    const t = this.audioCtx.currentTime;
+    // Low heavy whoosh
+    const osc = this.audioCtx.createOscillator();
+    const gain = this.audioCtx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(140, t);
+    osc.frequency.linearRampToValueAtTime(280, t + 0.2);
+    osc.frequency.exponentialRampToValueAtTime(80, t + 0.45);
+
+    gain.gain.setValueAtTime(0.55 * this.volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.45);
+
+    osc.connect(gain);
+    gain.connect(this.audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + 0.45);
+  }
+
+  // Chair smashing crash into teacher
+  playChairCrash() {
+    if (this.isMuted || !this.audioCtx) return;
+    this.resumeContext();
+
+    const t = this.audioCtx.currentTime;
+
+    // 1. Wood impact transient
+    const impactOsc = this.audioCtx.createOscillator();
+    const impactGain = this.audioCtx.createGain();
+    impactOsc.type = 'sawtooth';
+    impactOsc.frequency.setValueAtTime(180, t);
+    impactOsc.frequency.exponentialRampToValueAtTime(45, t + 0.35);
+
+    impactGain.gain.setValueAtTime(0.85 * this.volume, t);
+    impactGain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
+
+    impactOsc.connect(impactGain);
+    impactGain.connect(this.audioCtx.destination);
+    impactOsc.start(t);
+    impactOsc.stop(t + 0.4);
+
+    // 2. Wood splinter crash noise
+    const bufferSize = this.audioCtx.sampleRate * 0.4;
+    const noiseBuffer = this.audioCtx.createBuffer(1, bufferSize, this.audioCtx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+
+    const whiteNoise = this.audioCtx.createBufferSource();
+    whiteNoise.buffer = noiseBuffer;
+
+    const filter = this.audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1200, t);
+    filter.frequency.exponentialRampToValueAtTime(200, t + 0.35);
+
+    const noiseGain = this.audioCtx.createGain();
+    noiseGain.gain.setValueAtTime(0.7 * this.volume, t);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.35);
+
+    whiteNoise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(this.audioCtx.destination);
+
+    whiteNoise.start(t);
+  }
+
+  // Police phone dialing DTMF beeps & dial tone
+  playPhoneDial() {
+    if (this.isMuted || !this.audioCtx) return;
+    this.resumeContext();
+
+    const t = this.audioCtx.currentTime;
+    const tones = [941, 1336, 770, 1209, 852, 1477]; // Keypad frequencies
+
+    tones.forEach((freq, idx) => {
+      const beepTime = t + idx * 0.12;
+      const osc = this.audioCtx.createOscillator();
+      const gain = this.audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, beepTime);
+
+      gain.gain.setValueAtTime(0.28 * this.volume, beepTime);
+      gain.gain.setValueAtTime(0.01, beepTime + 0.08);
+
+      osc.connect(gain);
+      gain.connect(this.audioCtx.destination);
+      osc.start(beepTime);
+      osc.stop(beepTime + 0.09);
+    });
+  }
+
+  // Pepper spray 500ml pressurized continuous hissing burst
+  playPepperSpray() {
+    if (this.isMuted || !this.audioCtx) return;
+    this.resumeContext();
+
+    const t = this.audioCtx.currentTime;
+    const duration = 1.2;
+    const bufferSize = this.audioCtx.sampleRate * duration;
+    const noiseBuffer = this.audioCtx.createBuffer(1, bufferSize, this.audioCtx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+
+    const whiteNoise = this.audioCtx.createBufferSource();
+    whiteNoise.buffer = noiseBuffer;
+
+    const filter = this.audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(3200, t);
+    filter.Q.setValueAtTime(2.5, t);
+
+    const gain = this.audioCtx.createGain();
+    gain.gain.setValueAtTime(0.65 * this.volume, t);
+    gain.gain.setValueAtTime(0.6 * this.volume, t + duration - 0.2);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
+
+    whiteNoise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.audioCtx.destination);
+
+    whiteNoise.start(t);
+  }
+
+  // Machete slash razor metal schwing
+  playMacheteSlash() {
+    if (this.isMuted || !this.audioCtx) return;
+    this.resumeContext();
+
+    const t = this.audioCtx.currentTime;
+
+    // High metal ring
+    const osc = this.audioCtx.createOscillator();
+    const gain = this.audioCtx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(2200, t);
+    osc.frequency.exponentialRampToValueAtTime(800, t + 0.25);
+
+    gain.gain.setValueAtTime(0.65 * this.volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.005, t + 0.4);
+
+    osc.connect(gain);
+    gain.connect(this.audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + 0.4);
+
+    // Fast blade whoosh
+    const whooshOsc = this.audioCtx.createOscillator();
+    const whooshGain = this.audioCtx.createGain();
+    whooshOsc.type = 'sawtooth';
+    whooshOsc.frequency.setValueAtTime(750, t);
+    whooshOsc.frequency.linearRampToValueAtTime(150, t + 0.22);
+
+    whooshGain.gain.setValueAtTime(0.45 * this.volume, t);
+    whooshGain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+
+    whooshOsc.connect(whooshGain);
+    whooshGain.connect(this.audioCtx.destination);
+    whooshOsc.start(t);
+    whooshOsc.stop(t + 0.25);
+  }
+
+  // Stun dizzy stars buzzing for 3 seconds
+  playStunDizzy() {
+    if (this.isMuted || !this.audioCtx) return;
+    this.resumeContext();
+
+    const t = this.audioCtx.currentTime;
+    const duration = 2.8;
+
+    for (let i = 0; i < 4; i++) {
+      const osc = this.audioCtx.createOscillator();
+      const gain = this.audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800 + i * 220, t);
+      // Vibrato wobble
+      const lfo = this.audioCtx.createOscillator();
+      lfo.frequency.setValueAtTime(6 + i * 2, t);
+      const lfoGain = this.audioCtx.createGain();
+      lfoGain.gain.setValueAtTime(35, t);
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+
+      gain.gain.setValueAtTime(0.12 * this.volume, t);
+      gain.gain.exponentialRampToValueAtTime(0.005, t + duration);
+
+      osc.connect(gain);
+      gain.connect(this.audioCtx.destination);
+
+      lfo.start(t);
+      osc.start(t);
+      lfo.stop(t + duration);
+      osc.stop(t + duration);
+    }
+  }
+
+  // Juicy comic cartoon spit sound
+  playSpit() {
+    if (this.isMuted || !this.audioCtx) return;
+    this.resumeContext();
+
+    const t = this.audioCtx.currentTime;
+    const osc = this.audioCtx.createOscillator();
+    const gain = this.audioCtx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(650, t);
+    osc.frequency.exponentialRampToValueAtTime(120, t + 0.18);
+
+    gain.gain.setValueAtTime(0.55 * this.volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.22);
+
+    osc.connect(gain);
+    gain.connect(this.audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + 0.22);
+  }
+
+  // Fast ballpoint pen scratching on paper
+  playPenScribble() {
+    if (this.isMuted || !this.audioCtx) return;
+    this.resumeContext();
+
+    const t = this.audioCtx.currentTime;
+    for (let s = 0; s < 3; s++) {
+      const st = t + s * 0.08;
+      const osc = this.audioCtx.createOscillator();
+      const gain = this.audioCtx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(1400 + Math.random() * 600, st);
+
+      gain.gain.setValueAtTime(0.2 * this.volume, st);
+      gain.gain.exponentialRampToValueAtTime(0.01, st + 0.06);
+
+      osc.connect(gain);
+      gain.connect(this.audioCtx.destination);
+      osc.start(st);
+      osc.stop(st + 0.07);
+    }
+  }
+
+  // Wooden chair moving / scraping floor when standing up or sitting down
+  playSeatAction() {
+    if (this.isMuted || !this.audioCtx) return;
+    this.resumeContext();
+
+    const t = this.audioCtx.currentTime;
+    const osc = this.audioCtx.createOscillator();
+    const gain = this.audioCtx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(110, t);
+    osc.frequency.linearRampToValueAtTime(190, t + 0.1);
+    osc.frequency.exponentialRampToValueAtTime(60, t + 0.22);
+
+    gain.gain.setValueAtTime(0.4 * this.volume, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+
+    osc.connect(gain);
+    gain.connect(this.audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + 0.25);
   }
 }
 
