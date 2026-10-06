@@ -42,8 +42,27 @@
       </div>
 
       <div class="form-container">
-        <div class="character-select-section">
-          <label class="section-title">Wybierz swoją postać do gry:</label>
+        <!-- CATEGORY SWITCHER TABS -->
+        <div class="category-tabs-container">
+          <button type="button" class="category-tab active" id="tabCategoryArcade" data-category="arcade">
+            <span class="tab-icon">🕹️</span>
+            <div class="tab-info">
+              <strong>TRYB ARCADE</strong>
+              <small>Memy, postacie, supermoce, boss fight</small>
+            </div>
+          </button>
+          <button type="button" class="category-tab" id="tabCategoryClassic" data-category="classic">
+            <span class="tab-icon">🏫</span>
+            <div class="tab-info">
+              <strong>TRYB CLASSIC (Realistyczny)</strong>
+              <small>Własne imię, EduVulcan, smartfon, kibel, dyrektor</small>
+            </div>
+          </button>
+        </div>
+
+        <!-- ARCADE CHARACTER SELECT -->
+        <div class="character-select-section" id="sectionArcadeChars">
+          <label class="section-title">Wybierz swoją postać do gry (Arcade):</label>
           <div class="character-cards-grid" id="charSelectGrid">
             <!-- Card 1: Romanowski -->
             <div class="char-card active" data-character="romanowski">
@@ -120,6 +139,65 @@
           </div>
         </div>
 
+        <!-- CLASSIC CHARACTER CREATOR (Realistyczny) -->
+        <div class="classic-creator-section" id="sectionClassicChar" style="display: none;">
+          <label class="section-title">Stwórz swojego ucznia (Tryb Realistyczny):</label>
+          <div class="classic-form-grid">
+            <div class="classic-field">
+              <label for="customNameInput">Imię i Nazwisko ucznia:</label>
+              <input type="text" id="customNameInput" maxlength="28" value="Olivier Leszczyński" placeholder="np. Olivier Leszczyński" class="text-input-classic">
+            </div>
+
+            <div class="classic-field">
+              <label>Styl & Wygląd postaci:</label>
+              <div class="style-cards-grid" id="styleCardsGrid">
+                <div class="style-card" data-style="dresiarz">
+                  <span class="style-icon">🧢</span>
+                  <strong>Dresiarz</strong>
+                  <small>Paski, sportowy styl</small>
+                </div>
+                <div class="style-card" data-style="kujon">
+                  <span class="style-icon">👓</span>
+                  <strong>Kujon</strong>
+                  <small>Okulary, koszula</small>
+                </div>
+                <div class="style-card" data-style="hoodie">
+                  <span class="style-icon">🎧</span>
+                  <strong>Bluza z kapturem</strong>
+                  <small>Oversize, słuchawki</small>
+                </div>
+                <div class="style-card" data-style="alternatywka">
+                  <span class="style-icon">🎸</span>
+                  <strong>Alternatywka</strong>
+                  <small>Ciemny sweter, choker</small>
+                </div>
+                <div class="style-card active" data-style="klasyk">
+                  <span class="style-icon">🎒</span>
+                  <strong>Klasyczny Uczeń</strong>
+                  <small>Polo, dżinsy, plecak</small>
+                </div>
+              </div>
+            </div>
+
+            <div class="classic-field">
+              <label>Kolor ubrania:</label>
+              <div class="color-swatches-row" id="colorSwatchesRow">
+                <span class="color-swatch active" data-color="#2c3e50" style="background: #2c3e50;" title="Granatowy"></span>
+                <span class="color-swatch" data-color="#1e272e" style="background: #1e272e;" title="Czarny"></span>
+                <span class="color-swatch" data-color="#c0392b" style="background: #c0392b;" title="Czerwony"></span>
+                <span class="color-swatch" data-color="#27ae60" style="background: #27ae60;" title="Zielony"></span>
+                <span class="color-swatch" data-color="#8e44ad" style="background: #8e44ad;" title="Fioletowy"></span>
+                <span class="color-swatch" data-color="#f39c12" style="background: #f39c12;" title="Pomarańczowy"></span>
+              </div>
+            </div>
+
+            <div class="classic-notice-box">
+              <span class="notice-icon">ℹ️</span>
+              <p><strong>Cechy Trybu Realistycznego:</strong> Brak arcade'owych mocy i samolotów. Wszyscy startują na korytarzu z 20s do dzwonka. W lewym dolnym rogu masz <strong>Smartfon [T]</strong> z aplikacją <strong>EduVulcan</strong> (gdzie pisze numer sali), <strong>Bankiem</strong> (przelewy i gotówka) oraz <strong>Dark Webem</strong>. O 11:55 w kiblu zjawia się diler, a Halbina to wyłącznie żywy gracz (brak AI)!</p>
+            </div>
+          </div>
+        </div>
+
         <div class="menu-actions">
           <div class="action-card">
             <h3>Stwórz nową lekcję</h3>
@@ -128,6 +206,7 @@
               <label for="gameModeSelect">Tryb lekcji:</label>
               <select id="gameModeSelect">
                 <option value="normal" selected>🏫 Normalna Lekcja (5 min)</option>
+                <option value="classic_real">🏫 Tryb Realistyczny (Korytarz, EduVulcan, Diler, Dyrektor)</option>
                 <option value="classic">⚡ Klasyczny Szkolny Chaos (90s)</option>
                 <option value="hardcore">📝 Szybka Kartkówka (60s)</option>
                 <option value="boss">💀 BOSS FIGHT: Mega Halbina (120s)</option>
@@ -155,14 +234,14 @@
 
         <!-- Rules Box -->
         <div class="rules-card">
-          <h4>📜 Zasady Przetrwania na Lekcji:</h4>
+          <h4>📜 Zasady i Kategorie Gry:</h4>
           <ul>
-            <li>🏫 <strong>Normalna Lekcja (5 min)</strong>: Zaczynasz usadzony w swojej ławce! Aby chodzić, musisz <strong>wstać [Z]</strong>. Stanie poza ławką, gdy Halbina patrzy = Uwaga!</li>
-            <li>🪑 <strong>Rzut krzesłem [X]</strong>: TYLKO Filip Rzepa może cisnąć krzesłem w Halbinę! Halbina natychmiast <strong>dzwoni po policję</strong>!</li>
-            <li>🗡️ <strong>Filip Rzepa & Maczeta [V]</strong>: Gdy wbijają szkieły po rzucie krzesłem, TYLKO Filip Rzepa może ich rozgonić maczetą [V]! Używa też <strong>Gazu pieprzowego 500ml [Q]</strong>, ogłuszając i oślepiając Halbinę na 3 sekundy! (Tylko 1 Rzepa w lobby).</li>
-            <li>✈️ <strong>Samolot z papieru [F]</strong>: Dostępny wyłącznie w trybie <strong>BOSS FIGHT</strong>!</li>
-            <li>👀 <strong>Blackout dla gracza Halbina</strong>: Pisząc na tablicy nie widzi sali, a po obrocie widzi wyłącznie swój stożek wzroku – reszta to czarna mgła!</li>
-            <li>📝 <strong>Karna kartkówka</strong>: Ściąganie z telefonu wymaga <strong>przytrzymania min. 4 sekundy</strong>! Kutasa możesz narysować ile razy chcesz, a opluwać kartkę co 3s (pisze 30s)!</li>
+            <li>🕹️ <strong>Tryb Arcade</strong>: Postacie (Romanowski, Leszczyński, Wolff, Filip Rzepa) z supermocami (mleko, kleszcze, dym, gaz 500ml, maczeta, rzut krzesłem, Boss Fight z samolotami).</li>
+            <li>🏫 <strong>Tryb Classic (Realistyczny)</strong>: Własne Imię i Nazwisko oraz wygląd! Start na korytarzu, 20s do dzwonka. <strong>Smartfon [T]</strong>: <strong>EduVulcan</strong> z 1-minutowym planem chemii, <strong>Bank BLIK</strong>, <strong>Dark Web</strong> z dilerem w kiblu na 10 minut!</li>
+            <li>🔥 <strong>Świeca Dymna i E-Vape</strong>: Odpalenie świecy dymnej wywołuje <strong>ALARM POŻAROWY</strong> i zbiórkę ewakuacyjną na boisku! Nauczycielka (Halbina) musi tłumaczyć się Dyrektorowi (3 odpowiedzi do wyboru!).</li>
+            <li>🧎 <strong>Kucanie [C]</strong>: Działa wszędzie (skradanie i uniki), a przy ławce chowa Cię całkowicie pod biurkiem przed wzrokiem Halbiny!</li>
+            <li>🔫 <strong>Realistyczna Gospodarka</strong>: Ceny broni (AR-15 5800 zł, Makarow 2200 zł, magazynki, vape 110 zł). Zarabiaj w Kaucjomacie (1 zł/puszka), u woźnego, na koszu i na dilerze!</li>
+            <li>📓 <strong>Obowiązkowe Zadanie Domowe</strong>: Odrób zadanie w zeszycie za pomocą długopisu, zanim Halbina sprawdzi zeszyty i wstawi pałę (1) oraz uwagę!</li>
             <li>🚨 <strong>3 Uwagi = DYREKTOR</strong> i wyrzucenie z sali!</li>
           </ul>
         </div>
@@ -199,6 +278,10 @@
                 <span>Losowy gracz z obecnych staje się Halbiną</span>
               </label>
               <label class="radio-label">
+                <input type="radio" name="teacherChoice" value="host">
+                <span>Gospodarz pokoju zostaje Panią Halbiną</span>
+              </label>
+              <label class="radio-label">
                 <input type="radio" name="teacherChoice" value="bot">
                 <span>Nauczycielka AI (Wszyscy gramy jako uczniowie)</span>
               </label>
@@ -223,6 +306,18 @@
   <main id="screenGame" class="screen">
     <!-- Top Classroom HUD -->
     <div class="game-hud">
+
+    <!-- Flashing Emergency Fire Alarm Banner -->
+    <div id="fireAlarmBanner" class="fire-alarm-banner" style="display: none;">
+      <div class="fire-alarm-inner">
+        <span class="alarm-siren-icon pulse-alarm">🚨</span>
+        <div class="alarm-text-block">
+          <strong>ALARM POŻAROWY W SZKOLE! ZBIÓRKA EWAKUACYJNA!</strong>
+          <span id="fireAlarmDesc">Cała szkoła stoi w dymie! Wszyscy na dziedziniec / boisko szkolne (Sektor A)!</span>
+        </div>
+        <span id="fireAlarmTimerDisplay" class="alarm-timer-badge">55s</span>
+      </div>
+    </div>
       <div class="hud-item time-box">
         <span class="hud-icon">⏱️</span>
         <div class="hud-data">
@@ -268,6 +363,31 @@
         <div class="hud-data">
           <span class="label">RESPEKT</span>
           <span id="hudPoints" class="value">0 pkt</span>
+        </div>
+      </div>
+
+      <!-- Classic Mode HUD Additions -->
+      <div id="hudClassicClock" class="hud-item classic-clock-box" style="display: none;">
+        <span class="hud-icon">🕒</span>
+        <div class="hud-data">
+          <span class="label">GODZINA</span>
+          <span id="hudGameClock" class="value">11:45</span>
+        </div>
+      </div>
+
+      <div id="hudClassicBank" class="hud-item classic-bank-box" style="display: none;">
+        <span class="hud-icon">💳</span>
+        <div class="hud-data">
+          <span class="label">KONTO</span>
+          <span id="hudBankBalance" class="value">60.00 PLN</span>
+        </div>
+      </div>
+
+      <div id="hudClassicLocation" class="hud-item classic-location-box" style="display: none;">
+        <span class="hud-icon">📍</span>
+        <div class="hud-data">
+          <span class="label">SALA / STREFA</span>
+          <span id="hudLocationText" class="value">Korytarz</span>
         </div>
       </div>
     </div>
@@ -325,6 +445,13 @@
           <div class="intro-countdown" id="introCountdown">3</div>
         </div>
       </div>
+
+      <!-- Floating Smartphone Button (Tryb Classic) -->
+      <button id="phoneFloatingBtn" class="phone-floating-btn" style="display: none;" title="Otwórz Smartfon (Klawisz T)">
+        <span class="phone-floating-icon">📱</span>
+        <span class="phone-floating-text">Smartfon <strong>[T]</strong></span>
+        <span id="phoneNotificationBadge" class="phone-badge" style="display: none;">!</span>
+      </button>
     </div>
 
     <!-- Bottom Controls for Student -->
@@ -350,9 +477,16 @@
       </div>
 
       <!-- Student Action Buttons & Badges -->
+      <!-- Student Action Buttons & Badges -->
       <div class="student-actions-bar">
         <button id="btnSeatToggle" class="action-btn btn-seat" title="Wstań z ławki lub usiądź (Klawisz Z)">
           🪑 <strong id="btnSeatText">[Z] Wstań z ławki</strong>
+        </button>
+        <button id="btnOpenPhone" class="action-btn btn-phone" style="display: none;" title="Otwórz Smartfon (Klawisz T)">
+          📱 <strong>[T] Smartfon</strong>
+        </button>
+        <button id="btnOpenBackpack" class="action-btn btn-backpack" style="display: none;" title="Otwórz plecak (Klawisz I)">
+          🎒 <strong>[I] Plecak</strong>
         </button>
         <button id="btnThrowChair" class="action-btn btn-chair" title="Rzuć krzesłem w Halbinę! (Klawisz X - Uwaga: zadzwoni na policję!)">
           🪑 <strong>[X] Rzuć krzesłem</strong>
@@ -377,8 +511,21 @@
         </span>
       </div>
 
+      <!-- RPG Quick Hotbar (Classic Mode) -->
+      <div id="inventoryHotbar" class="classic-hotbar" style="display: none;">
+        <div class="hotbar-label">🎒 EKWIPUNEK SZYBKI (1-6 / Kliknij aby użyć | [I] Cały plecak):</div>
+        <div class="hotbar-slots">
+          <div class="hotbar-slot" data-slot="0" title="Slot 1 (Klawisz 1)"><span class="slot-key">1</span><div class="slot-item"><span class="slot-empty">—</span></div></div>
+          <div class="hotbar-slot" data-slot="1" title="Slot 2 (Klawisz 2)"><span class="slot-key">2</span><div class="slot-item"><span class="slot-empty">—</span></div></div>
+          <div class="hotbar-slot" data-slot="2" title="Slot 3 (Klawisz 3)"><span class="slot-key">3</span><div class="slot-item"><span class="slot-empty">—</span></div></div>
+          <div class="hotbar-slot" data-slot="3" title="Slot 4 (Klawisz 4)"><span class="slot-key">4</span><div class="slot-item"><span class="slot-empty">—</span></div></div>
+          <div class="hotbar-slot" data-slot="4" title="Slot 5 (Klawisz 5)"><span class="slot-key">5</span><div class="slot-item"><span class="slot-empty">—</span></div></div>
+          <div class="hotbar-slot" data-slot="5" title="Slot 6 (Klawisz 6)"><span class="slot-key">6</span><div class="slot-item"><span class="slot-empty">—</span></div></div>
+        </div>
+      </div>
+
       <div class="movement-hint">
-        <span>🎮 Sterowanie: <strong>[W][A][S][D]</strong> - Ruch | <strong>[Z]</strong> - Wstań / Usiądź | <strong>[X]</strong> - Rzut krzesłem | <strong>[1][2][3]</strong> - Krzyk | <strong>[C]</strong> - Kucnij | <strong>[E]</strong> - Ściągaj | <strong>[Q]/[V]</strong> - Supermoce</span>
+        <span>🎮 Sterowanie: <strong>[W][A][S][D]</strong> - Ruch | <strong>[Z]</strong> - Wstań / Usiądź | <strong>[T]</strong> - Telefon | <strong>[I]</strong> - Plecak | <strong>[1-6]</strong> - Przedmioty | <strong>[X]</strong> - Krzesło | <strong>[E]</strong> - Interakcja / Ściągaj</span>
       </div>
     </div>
 
@@ -387,15 +534,39 @@
       <div class="teacher-bar">
         <div class="teacher-info">
           <h3>👩‍🏫 JESTEŚ KATARZYNĄ HALBINĄ!</h3>
-          <p>Pilnuj porządku! Kliknij na ucznia w klasie, aby zrobić <strong>PRZEGLĄD ŁAWEK</strong> (1 na obrót). Jeśli siedzi na złej ławce – wlep Uwagę!</p>
+          <p>Pilnuj porządku! Przeprowadzaj inspekcje, uciszaj klasę i karz niepokornych uczniów.</p>
         </div>
         <div class="teacher-actions">
-          <span id="teacherInspectBadge" class="inspect-badge ready">🔍 Przegląd: DOSTĘPNY (Kliknij ucznia)</span>
-          <button id="btnTeacherQuiz" class="btn btn-primary" title="Weź ucznia do odpowiedzi (Wymaga min. 50% wkurwienia)">
-            📢 DO ODPOWIEDZI! (50%+)
+          <span id="teacherInspectBadge" class="inspect-badge ready">🔍 Przegląd: DOSTĘPNY</span>
+          <button id="btnTeacherRollCall" class="btn btn-info btn-teacher-act" title="Sprawdź listę obecności w klasie">
+            📋 Lista obecności
+          </button>
+          <button id="btnTeacherConfiscate" class="btn btn-warning btn-teacher-act" title="Zarekwirowuj nielegalne rzeczy z ławek (vape, noże, petardy)">
+            🎒 Rewizja plecaków
+          </button>
+          <button id="btnTeacherChalk" class="btn btn-secondary btn-teacher-act" title="Rzuć kredą w hałasującego ucznia [F]">
+            🖍️ Rzuć kredą [F]
+          </button>
+          <button id="btnTeacherSlamDesk" class="btn btn-danger btn-teacher-act" title="Uderz linijką o biurko - NATYCHMIASTOWA CISZA!">
+            📏 Uderz w biurko!
+          </button>
+          <button id="btnTeacherCallDirector" class="btn btn-dark btn-teacher-act" title="Wezwij Dyrektora do sali 204">
+            🚨 Wezwij Dyrektora
+          </button>
+          <button id="btnTeacherQuiz" class="btn btn-primary btn-teacher-act" title="Weź ucznia do odpowiedzi (Wymaga min. 50% wkurwienia)">
+            📢 Do odpowiedzi! (50%+)
+          </button>
+          <button id="btnTeacherStoryInspection" class="btn btn-primary btn-teacher-act" style="background:#8e44ad; border-color:#9b59b6;" title="Uruchom wątek fabularny: Wizytacja z Kuratorium">
+            🏛️ Wizytacja Kuratorium
+          </button>
+          <button id="btnTeacherStoryPolice" class="btn btn-dark btn-teacher-act" style="background:#2c3e50; border-color:#34495e;" title="Uruchom wątek fabularny: Nalot Policji & K9">
+            🚓 Obława Policji & K9
+          </button>
+          <button id="btnTeacherCheckHomework" class="btn btn-warning btn-teacher-act" style="background:#d35400; border-color:#e67e22;" title="Skontroluj zeszyty i sprawdź zadanie domowe u wszystkich w klasie!">
+            📓 Sprawdź Zadania
           </button>
           <button id="btnTeacherTurn" class="btn btn-warning btn-turn">
-            🔄 OBRÓĆ SIĘ (2s) / TABLICA (SPACJA)
+            🔄 OBRÓĆ SIĘ (SPACJA)
           </button>
         </div>
       </div>
@@ -580,6 +751,970 @@
         <button id="btnQuitToMenu" class="btn btn-outline">
           🚪 Wyjdź do Menu
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLASSIC MODE MODAL: SMARTPHONE [T] -->
+  <div id="modalSmartphone" class="modal-overlay" style="display: none;">
+    <div class="smartphone-frame">
+      <!-- Phone Bezel & Top Notch -->
+      <div class="phone-speaker"></div>
+      <div class="phone-camera"></div>
+
+      <!-- Phone Screen -->
+      <div class="phone-screen">
+        <!-- Status Bar -->
+        <div class="phone-status-bar">
+          <span id="phoneClock" class="phone-time">11:45</span>
+          <div class="phone-status-icons">
+            <span>📶 LTE</span>
+            <span>📶</span>
+            <span>98% 🔋</span>
+          </div>
+        </div>
+
+        <!-- App Container -->
+        <div class="phone-app-body">
+          <!-- 1. EduVulcan App -->
+          <div id="appEduVulcan" class="phone-app-view active">
+            <div class="vulcan-header">
+              <div class="vulcan-logo">
+                <span class="v-icon">🎓</span>
+                <div>
+                  <strong>EduVulcan Mobile</strong>
+                  <small>Dziennik Ucznia</small>
+                </div>
+              </div>
+              <span id="vulcanStudentTag" class="vulcan-student-badge">Olivier Leszczyński (2B)</span>
+            </div>
+
+            <div class="vulcan-card">
+              <div class="vulcan-card-title">📅 Dzisiejsza Lekcja:</div>
+              <div class="vulcan-lesson-info">
+                <div class="lesson-time" id="vulcanCurrentLessonTime">11:45 - 11:46</div>
+                <div class="lesson-subject" id="vulcanCurrentLessonSubject">🧪 Chemia: Budowa atomu i wiązania</div>
+                <div class="lesson-room" id="vulcanRoomBadge">🚪 SALA 204</div>
+                <div class="lesson-teacher">Prowadząca: mgr inż. Katarzyna Halbina</div>
+              </div>
+              <div class="vulcan-status-row">
+                <span>Status obecności:</span>
+                <span id="vulcanAttendanceBadge" class="vulcan-badge badge-present">✅ Obecny</span>
+              </div>
+            </div>
+
+            <div class="vulcan-card">
+              <div class="vulcan-card-title">🕒 Plan Lekcji (Wszystkie lekcje to chemia - 1 min/lekcja):</div>
+              <div class="vulcan-schedule-timer-bar" style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.06); padding: 6px 10px; border-radius: 6px; margin-bottom: 8px;">
+                <span style="font-size: 0.8rem; color: #bdc3c7;">Trwająca lekcja kończy się za:</span>
+                <strong id="vulcanLessonTimerBadge" style="color: #f1c40f; font-size: 0.95rem;">60s</strong>
+              </div>
+              <div id="vulcanScheduleList" class="vulcan-schedule-list" style="display: flex; flex-direction: column; gap: 4px; max-height: 140px; overflow-y: auto;">
+                <!-- 10 Chemistry Modules populated dynamically -->
+              </div>
+            </div>
+
+            <div class="vulcan-card">
+              <div class="vulcan-card-title">📓 Zadanie Domowe z Chemii:</div>
+              <div class="vulcan-status-row">
+                <span>Stan zeszytu:</span>
+                <span id="vulcanHomeworkBadge" class="vulcan-badge badge-tardy" style="background: #e74c3c;">❌ Nieodrobione (Grozi 1!)</span>
+              </div>
+              <div id="vulcanHomeworkDetails" style="font-size: 0.78rem; color: #bdc3c7; margin-top: 6px; line-height: 1.3;">
+                Odrób zadanie w zeszycie za pomocą długopisu, zanim Halbina sprawdzi obecność i zeszyty!
+              </div>
+            </div>
+
+            <div class="vulcan-card">
+              <div class="vulcan-card-title">📊 Oceny z Chemii:</div>
+              <div id="vulcanGradesList" class="vulcan-list">
+                <span class="vulcan-empty">Brak ocen (Zrób zadanie w zeszycie w sali 204!)</span>
+              </div>
+            </div>
+
+            <div class="vulcan-card">
+              <div class="vulcan-card-title">⚠️ Uwagi i Zachowanie:</div>
+              <div id="vulcanNotesList" class="vulcan-list">
+                <span class="vulcan-empty">Brak negatywnych uwag.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Bank App (StudentPay) -->
+          <div id="appBank" class="phone-app-view">
+            <div class="bank-header">
+              <span class="bank-icon">💳</span>
+              <strong>StudentPay Mobile</strong>
+            </div>
+
+            <div class="bank-balance-card">
+              <span class="balance-sub">DOSTĘPNE ŚRODKI</span>
+              <h2 id="phoneBankBalance">60.00 PLN</h2>
+              <span class="card-num">•••• •••• •••• 4291</span>
+            </div>
+
+            <div class="bank-section">
+              <h4>⚡ Szybki Przelew BLIK</h4>
+              <div class="bank-transfer-form">
+                <div class="form-row">
+                  <label for="bankRecipientSelect">Odbiorca (Uczeń):</label>
+                  <select id="bankRecipientSelect" class="phone-select">
+                    <option value="">Wybierz ucznia...</option>
+                  </select>
+                </div>
+                <div class="form-row">
+                  <label for="bankAmountInput">Kwota (PLN):</label>
+                  <input type="number" id="bankAmountInput" class="phone-input" min="1" max="1000" value="10" step="5">
+                </div>
+                <button id="btnSendBankTransfer" class="phone-btn-submit">
+                  💸 Wyślij Przelew
+                </button>
+                <div id="bankTransferStatus" class="bank-msg"></div>
+              </div>
+            </div>
+
+            <div class="bank-section">
+              <h4>📋 Historia Transakcji</h4>
+              <div id="bankTxHistory" class="tx-list">
+                <div class="tx-item">
+                  <span>Kieszonkowe od mamy</span>
+                  <strong class="tx-in">+60.00 PLN</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Dark Web App (Tor Browser) -->
+          <div id="appDarkWeb" class="phone-app-view">
+            <div class="darkweb-header">
+              <span class="onion-icon">🧅</span>
+              <div>
+                <strong>TOR ONION BROWSER</strong>
+                <small>schoolmarket7x9.onion</small>
+              </div>
+            </div>
+
+            <div class="darkweb-alert-card">
+              <div class="dw-alert-title">🧅 HARMONOGRAM DILERA W KIBLU:</div>
+              <p>Diler przebywa w <strong>SZKOLNYM KIBLU (Kabina 2)</strong> przez <strong>10 MINUT</strong> (11:45 - 11:55)!</p>
+              <div id="darkwebDealerArrivalStatus" class="dw-timer-box">
+                ⏳ Czas obecności dilera: 10:00 min pozostało
+              </div>
+            </div>
+
+            <div class="darkweb-catalog-card">
+              <h4>📦 Realistyczny Cennik Czarnego Rynku:</h4>
+              <div class="dw-catalog-item rare">
+                <span>🔥 Karabin szturmowy AR-15 (5.56mm)</span>
+                <strong>5800.00 PLN</strong>
+              </div>
+              <div class="dw-catalog-item">
+                <span>🗃️ Magazynek 5.56mm (30 naboi AR-15)</span>
+                <strong>200.00 PLN</strong>
+              </div>
+              <div class="dw-catalog-item">
+                <span>🔫 Pistolet Makarow (9mm)</span>
+                <strong>2200.00 PLN</strong>
+              </div>
+              <div class="dw-catalog-item">
+                <span>🗃️ Magazynek 9mm (8 naboi Makarow)</span>
+                <strong>130.00 PLN</strong>
+              </div>
+              <div class="dw-catalog-item">
+                <span>💨 Wojskowa Świeca Dymna (Alarm pożarowy!)</span>
+                <strong>220.00 PLN</strong>
+              </div>
+              <div class="dw-catalog-item">
+                <span>💨 E-Papieros Vape Pod</span>
+                <strong>110.00 PLN</strong>
+              </div>
+              <div class="dw-catalog-item">
+                <span>🗡️ Bojowa maczeta stalowa</span>
+                <strong>260.00 PLN</strong>
+              </div>
+              <div class="dw-catalog-item">
+                <span>🔪 Sprężynowiec / Scyzoryk</span>
+                <strong>140.00 PLN</strong>
+              </div>
+              <div class="dw-catalog-item">
+                <span>🛠️ Nożyce do metalu / Łom</span>
+                <strong>160.00 PLN</strong>
+              </div>
+              <div class="dw-catalog-item">
+                <span>📝 Ściąga z chemii</span>
+                <strong>30.00 PLN</strong>
+              </div>
+              <div class="dw-catalog-item">
+                <span>⚡ Monster Energy</span>
+                <strong>8.50 PLN</strong>
+              </div>
+              <small class="dw-note">💡 Wejdź do toalety i podejdź do kabiny 2 [E], aby handlować z dilerem!</small>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bottom Phone Dock -->
+        <div class="phone-dock">
+          <button class="phone-dock-btn active" data-app="appEduVulcan" title="EduVulcan">
+            <span class="dock-icon">🎓</span>
+            <span class="dock-label">Vulcan</span>
+          </button>
+          <button class="phone-dock-btn" data-app="appBank" title="StudentPay Bank">
+            <span class="dock-icon">💳</span>
+            <span class="dock-label">Bank</span>
+          </button>
+          <button class="phone-dock-btn" data-app="appDarkWeb" title="Dark Web">
+            <span class="dock-icon">🧅</span>
+            <span class="dock-label">Dark Web</span>
+          </button>
+        </div>
+
+        <!-- Phone Home Bar / Close Button -->
+        <div class="phone-home-bar-container">
+          <button id="btnClosePhone" class="phone-home-bar" title="Schowaj telefon (Klawisz T lub ESC)"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEDICATED FULL BACKPACK MODAL ([I] Plecak) -->
+  <div id="modalInventory" class="modal-overlay" style="display: none;">
+    <div class="backpack-dialog-box">
+      <div class="backpack-dialog-header">
+        <div class="backpack-title-box">
+          <span class="backpack-dialog-icon">🎒</span>
+          <div>
+            <h2>TWÓJ SZKOLNY PLECAK</h2>
+            <p>Pojemność: 18 przegródek | Kliknij przedmiot, aby go wybrać i użyć</p>
+          </div>
+        </div>
+        <button id="btnCloseBackpack" class="btn-close-modal" title="Zamknij plecak (ESC / I)">✖</button>
+      </div>
+
+      <div class="backpack-content-layout">
+        <div class="backpack-grid-container">
+          <div class="backpack-grid-header">
+            <span>PRZEGRÓDKI PLECAKA:</span>
+            <small>Sloty 1–6 to Twój Szybki Pasek na dole ekranu</small>
+          </div>
+          <div id="backpackGrid" class="backpack-grid">
+            <!-- 18 inventory slots rendered here dynamically -->
+          </div>
+        </div>
+
+        <div class="backpack-details-panel">
+          <div id="backpackItemPreview" class="item-preview-card">
+            <div class="preview-empty-state">
+              <span class="preview-empty-icon">🎒</span>
+              <p>Wybierz przedmiot z plecaka, aby zobaczyć opis i akcje.</p>
+            </div>
+          </div>
+          <div class="backpack-actions">
+            <button id="btnUseSelectedBackpackItem" class="btn btn-primary btn-use-backpack" disabled>
+              ⚡ UŻYJ PRZEDMIOTU
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="backpack-dialog-footer">
+        <div class="backpack-hotbar-hint">
+          💡 <strong>Skróty:</strong> Klawisze <strong>[1] - [6]</strong> natychmiast używają pierwszych 6 przedmiotów bez otwierania plecaka!
+        </div>
+        <button id="btnCloseBackpackBottom" class="btn btn-outline">
+          Zamknij [I]
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HALBINA TARDY DECISION MODAL (Dla gracza Halbina) -->
+  <div id="modalHalbinaTardy" class="modal-overlay" style="display: none;">
+    <div class="tardy-dialog-box chalkboard-card">
+      <div class="tardy-header">
+        <span class="tardy-icon">🚪</span>
+        <div>
+          <h2>SPÓŹNIONY UCZEŃ WSZEDŁ DO SALI 204!</h2>
+          <p>Dzwonek już dawno zabrzmiał! <strong id="tardyStudentName">Uczeń</strong> wparował do klasy po czasie!</p>
+        </div>
+      </div>
+      <div class="tardy-choices-list">
+        <button id="btnTardyOption1" class="tardy-btn choice-1" data-option="1">
+          <span class="choice-num">1</span>
+          <div class="choice-content">
+            <strong>1. Odpuść mu, daj obecność</strong>
+            <small>Uczeń siada w ławce bez żadnej kary. Otrzymuje obecność w EduVulcan.</small>
+          </div>
+        </button>
+        <button id="btnTardyOption2" class="tardy-btn choice-2" data-option="2">
+          <span class="choice-num">2</span>
+          <div class="choice-content">
+            <strong>2. Weź go do odpowiedzi (Kartkówka)!</strong>
+            <small>Natychmiastowe trudne pytanie z chemii pod tablicą!</small>
+          </div>
+        </button>
+        <button id="btnTardyOption3" class="tardy-btn choice-3" data-option="3">
+          <span class="choice-num">3</span>
+          <div class="choice-content">
+            <strong>3. Wyślij go do Dyrektora!</strong>
+            <small>Wyrzuć go z sali 204 prosto na dywanik do Gabinetu Dyrektora!</small>
+          </div>
+        </button>
+      </div>
+      <div class="tardy-hint">
+        Klawisze skrótu: Naciśnij <strong>[1]</strong>, <strong>[2]</strong> lub <strong>[3]</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- HALBINA SMOKE GRENADE INTERROGATION MODAL (3 ODPOWIEDZI DO WYBORU) -->
+  <div id="modalHalbinaSmokeExplain" class="modal-overlay" style="display: none;">
+    <div class="smoke-explain-box chalkboard-card">
+      <div class="smoke-explain-header">
+        <span class="smoke-siren-icon">🚨👨‍💼</span>
+        <div>
+          <h2>ROZMOWA DYSCYPLINARNA U DYREKTORA!</h2>
+          <p>mgr Janusz Nowak wpada z megafonem i gaśnicą w kłębach gryzącego dymu!</p>
+        </div>
+      </div>
+
+      <div class="smoke-explain-quote">
+        "PANI KATARZYNO! Co tu się do diabła dzieje?! Cała szkoła stoi w dymie, a straż pożarna już wyjeżdża z remizy! Ma Pani 10 sekund na wytłumaczenie się przed dyrekcją!"
+      </div>
+
+      <div class="smoke-explain-choices">
+        <button id="btnSmokeChoice1" class="smoke-choice-btn choice-science" data-choice="1">
+          <span class="choice-num-badge">1</span>
+          <div class="smoke-choice-text">
+            <strong>«To kontrolowany eksperyment z sublimacji i reakcji redoks! Wszystko pod pełną kontrolą dydaktyczną!»</strong>
+            <small>🔬 Wytłumaczenie dydaktyczne: Dyrektor jest sceptyczny, ale łagodzi karę. (Zmniejsza stres i wkurwienie)</small>
+          </div>
+        </button>
+
+        <button id="btnSmokeChoice2" class="smoke-choice-btn choice-blame" data-choice="2">
+          <span class="choice-num-badge">2</span>
+          <div class="smoke-choice-text">
+            <strong>«To sprawka tego chuligana z ostatniej ławki! Podpalił coś za szafą, natychmiast wyciągnę surowe konsekwencje!»</strong>
+            <small>🎯 Zrzucenie winy: Dyrektor żąda wpisania nagany uczniowi do EduVulcan i wzywa rodziców!</small>
+          </div>
+        </button>
+
+        <button id="btnSmokeChoice3" class="smoke-choice-btn choice-bluff" data-choice="3">
+          <span class="choice-num-badge">3</span>
+          <div class="smoke-choice-text">
+            <strong>«Panie Dyrektorze, w piwnicy rozszczelnił się stary piec węglowy woźnego! Trzeba natychmiast ratować kotłownię!»</strong>
+            <small>💨 Blef i odwrócenie uwagi: Dyrektor wpada w panikę i z gaśnicą ucieka do kotłowni! Całkowita bezkarność!</small>
+          </div>
+        </button>
+      </div>
+
+      <div class="tardy-hint">
+        Klawisze skrótu: Naciśnij <strong>[1]</strong>, <strong>[2]</strong> lub <strong>[3]</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- GABINET DYREKTORA MODAL -->
+  <div id="modalDirector" class="modal-overlay" style="display: none;">
+    <div class="director-dialog-box">
+      <div class="director-header">
+        <div class="director-avatar-box">
+          <div class="director-avatar">👨‍💼</div>
+          <div class="polish-flag-mini">🇵🇱</div>
+        </div>
+        <div class="director-title-box">
+          <h2>GABINET DYREKTORA SZKOŁY</h2>
+          <span class="director-name">mgr Janusz Nowak - Dyrektor ZSTU</span>
+        </div>
+      </div>
+
+      <div class="director-speech-bubble">
+        <p id="directorSpeechText">"Co cię tu sprowadza, młody człowieku?! Czemu nie jesteś na lekcji chemii u pani Halbina?!"</p>
+      </div>
+
+      <div class="director-dialog-options">
+        <button class="director-opt-btn" id="btnDirectorOpt1" data-opt="1">
+          <span class="opt-key">1</span>
+          <span class="opt-text">"Ta stara kurwa wysłała mnie."</span>
+        </button>
+        <button class="director-opt-btn" id="btnDirectorOpt2" data-opt="2">
+          <span class="opt-key">2</span>
+          <span class="opt-text">"Obciągnij mi."</span>
+        </button>
+        <button class="director-opt-btn" id="btnDirectorOpt3" data-opt="3">
+          <span class="opt-key">3</span>
+          <span class="opt-text">"Przepraszam panie dyrektorze, ale spóźniłem się na lekcję pani Halbiny."</span>
+        </button>
+        <button class="director-opt-btn weapon-opt" id="btnDirectorOpt4" data-opt="4" style="display: none;">
+          <span class="opt-key">4</span>
+          <span class="opt-text" id="btnDirectorWeaponText">🔪 [BROŃ] Wyciągnij broń i sterroryzuj dyrektora! (+300 PLN z sejfu)</span>
+        </button>
+        <button class="director-opt-btn" id="btnDirectorOpt5" data-opt="5">
+          <span class="opt-key">5</span>
+          <span class="opt-text">📋 [SKARGA] "Zgłaszam oficjalną skargę na mobbing i psychiczny terror pani Halbiny!"</span>
+        </button>
+        <button class="director-opt-btn bribe-opt" id="btnDirectorOpt6" data-opt="6">
+          <span class="opt-key">6</span>
+          <span class="opt-text">💵 [ŁAPÓWKA 50 PLN] "Panie dyrektorze, załatwmy wzorowe zachowanie pod stołem..."</span>
+        </button>
+        <button class="director-opt-btn" id="btnDirectorOpt7" data-opt="7">
+          <span class="opt-key">7</span>
+          <span class="opt-text">🩺 [ZWOLNIENIE] "Strasznie boli mnie brzuch, proszę o zwolnienie ze szkoły do domu!"</span>
+        </button>
+        <button class="director-opt-btn steal-opt" id="btnDirectorOpt8" data-opt="8">
+          <span class="opt-key">8</span>
+          <span class="opt-text">🕵️‍♂️ [KRADZIEŻ] Zwiń oficjalną pieczątkę dyrektora z biurka! (Fałszowanie usprawiedliwień)</span>
+        </button>
+        <button class="director-opt-btn" id="btnDirectorOpt9" data-opt="9">
+          <span class="opt-key">9</span>
+          <span class="opt-text">⌚ [ROLEX] "Ładny ten złoty zegarek Rolex na pana nadgarstku, dyrektorze..."</span>
+        </button>
+      </div>
+
+      <div class="director-footer">
+        <button id="btnCloseDirector" class="btn btn-outline">
+          ✖ Wyjdź z gabinetu
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DILER W KIBLU MODAL -->
+  <div id="modalDealerShop" class="modal-overlay" style="display: none;">
+    <div class="dealer-shop-box">
+      <div class="dealer-header">
+        <span class="dealer-avatar">🕶️</span>
+        <div>
+          <h2>SZKOLNY KIBEL - KABINA 2</h2>
+          <p id="dealerShopQuote">"Psst... masz hajs? Kupuj szybko, zanim dyro albo woźna wejdzie."</p>
+        </div>
+      </div>
+
+      <div class="dealer-wallet-bar">
+        <span>Twój stan konta (StudentPay):</span>
+        <strong id="dealerWalletDisplay">60.00 PLN</strong>
+      </div>
+
+      <div class="dealer-tabs">
+        <button id="tabDealerBuy" class="dealer-tab-btn active">🛒 Kup od dilera</button>
+        <button id="tabDealerSell" class="dealer-tab-btn">💰 Sprzedaj przedmioty</button>
+      </div>
+
+      <div id="dealerBuyContent" class="dealer-shelf">
+        <!-- Stock items populated dynamically -->
+      </div>
+
+      <div id="dealerSellContent" class="dealer-shelf" style="display: none;">
+        <!-- Player items available for selling -->
+      </div>
+
+      <div class="dealer-footer">
+        <button id="btnCloseDealerShop" class="btn btn-outline">
+          🚪 Wyjdź z kabiny
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ZADANIE W ZESZYCIE (SALA 204) MODAL -->
+  <div id="modalChemistryExercise" class="modal-overlay" style="display: none;">
+    <div class="chemistry-exercise-box notebook-sheet">
+      <div class="notebook-holes"><span></span><span></span><span></span></div>
+      <div class="red-margin-line"></div>
+
+      <div class="sheet-header">
+        <span class="notebook-title">📓 ZESZYT DO CHEMII - ZADANIE DOMOWE</span>
+        <span class="notebook-reward" style="background: #27ae60;">OBOWIĄZKOWE: Ocena 5 & Bezpieczeństwo przed Halbiną!</span>
+      </div>
+
+      <div class="notebook-task-body">
+        <p class="task-prompt" id="chemTaskPrompt">Uzupełnij reakcję chemiczną...</p>
+        <div class="chem-options-grid" id="chemTaskOptionsGrid">
+          <!-- 4 option buttons -->
+        </div>
+      </div>
+
+      <div class="notebook-footer">
+        <small id="chemPenWarning" class="pen-warning">🖊️ Wymagany długopis w ekwipunku, aby zapisać zadanie!</small>
+        <button id="btnCloseChemTask" class="btn btn-outline">
+          ✖ Zamknij zeszyt
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SZKOLNY SKLEPIK / BUFET U PANI BASI -->
+  <div id="modalBuffetShop" class="modal-overlay" style="display: none;">
+    <div class="buffet-shop-box">
+      <div class="buffet-header">
+        <span class="buffet-avatar">🥪</span>
+        <div>
+          <h2>SZKOLNY SKLEPIK - U PANI BASI</h2>
+          <p id="buffetShopQuote">"Co tam podać, skarbie? Ciepła zapieksa z pieczarkami czy drożdżówka z serem?"</p>
+        </div>
+      </div>
+
+      <div class="buffet-wallet-bar">
+        <span>Twój stan konta (StudentPay):</span>
+        <strong id="buffetWalletDisplay">60.00 PLN</strong>
+      </div>
+
+      <div id="buffetItemsContainer" class="buffet-shelf">
+        <!-- Stock items populated dynamically -->
+      </div>
+
+      <div class="buffet-footer">
+        <small class="buffet-note">💡 Jedzenie regeneruje szacunek, daje sprint lub inne korzyści!</small>
+        <button id="btnCloseBuffetShop" class="btn btn-outline">
+          🚪 Wyjdź ze sklepiku
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- POKÓJ NAUCZYCIELSKI -->
+  <div id="modalStaffRoom" class="modal-overlay" style="display: none;">
+    <div class="staff-room-box">
+      <div class="staff-header">
+        <span class="staff-avatar">🛋️</span>
+        <div>
+          <h2>POKÓJ NAUCZYCIELSKI</h2>
+          <p>Zapach parzonej kawy TCHIBO i sterty niesprawdzonych kartkówek...</p>
+        </div>
+      </div>
+
+      <div class="staff-npcs-box">
+        <div class="teacher-npc">
+          <span class="npc-icon">👩‍💼</span>
+          <div>
+            <strong>mgr Grażyna (Biologia)</strong>
+            <small>"Znowu kartkówka z fotosyntezy... te dzieciaki w ogóle nie słuchają."</small>
+          </div>
+        </div>
+        <div class="teacher-npc">
+          <span class="npc-icon">👨‍🏫</span>
+          <div>
+            <strong>pan Wiesiu (Wychowanie Fizyczne)</strong>
+            <small>"Kto nie ma białej koszulki, ten robi 50 pompek na korytarzu!"</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="staff-actions-grid">
+        <button id="btnStaffBrewCoffee" class="staff-action-card">
+          <span class="staff-act-icon">☕</span>
+          <div class="staff-act-text">
+            <strong>Zaparz kawę w ekspresie</strong>
+            <small>Darmowa mocna czarna kawa. Daje przypływ energii (+25 Szacunku) i resetuje stres!</small>
+          </div>
+        </button>
+        <button id="btnStaffStealExam" class="staff-action-card steal-card">
+          <span class="staff-act-icon">📑</span>
+          <div class="staff-act-text">
+            <strong>Podkradnij klucz odpowiedzi do sprawdzianu</strong>
+            <small>Leży na biurku pani Grażyny! Pozwala z automatu zaliczyć każdą kartkówkę na 5!</small>
+          </div>
+        </button>
+        <button id="btnStaffChat" class="staff-action-card">
+          <span class="staff-act-icon">💬</span>
+          <div class="staff-act-text">
+            <strong>Zagadaj do nauczycieli</strong>
+            <small>Posłuchaj pikantnych plotek z pokoju nauczycielskiego o pani Halbinie.</small>
+          </div>
+        </button>
+      </div>
+
+      <div id="staffRoomStatusMsg" class="staff-status-msg" style="display: none;"></div>
+
+      <div class="staff-footer">
+        <button id="btnCloseStaffRoom" class="btn btn-outline">
+          🚪 Wyjdź na korytarz
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SZKOLNY RADIOWĘZEŁ & MONITORING -->
+  <div id="modalRadiowezel" class="modal-overlay" style="display: none;">
+    <div class="staff-room-box" style="border-color: #00d2d3; box-shadow: 0 0 35px rgba(0, 210, 211, 0.35);">
+      <div class="staff-header">
+        <span class="staff-avatar">🎙️</span>
+        <div>
+          <h2>SZKOLNY RADIOWĘZEŁ & MONITORING</h2>
+          <p>Potężny wzmacniacz 1000W podłączony do głośników w każdej sali i na korytarzu!</p>
+        </div>
+      </div>
+
+      <div class="staff-actions-grid">
+        <button id="btnRadiowezelFireAlarm" class="staff-action-card">
+          <span class="staff-act-icon">🚨</span>
+          <div class="staff-act-text">
+            <strong>Alarm Pożarowy (Ewakuacja)</strong>
+            <small>Halbina i nauczyciele wpadają w panikę! Anuluje kartkówki i paraliżuje lekcję na 12s.</small>
+          </div>
+        </button>
+        <button id="btnRadiowezelSummonTeacher" class="staff-action-card">
+          <span class="staff-act-icon">📢</span>
+          <div class="staff-act-text">
+            <strong>Wezwij Halbinę do Gabinetu</strong>
+            <small>Oficjalny komunikat dyrekcji: Halbina musi natychmiast opuścić salę 204 na 18 sekund!</small>
+          </div>
+        </button>
+        <button id="btnRadiowezelHardbass" class="staff-action-card" style="border-color: #f1c40f;">
+          <span class="staff-act-icon">🔊</span>
+          <div class="staff-act-text">
+            <strong>Szkolny Hardbass & Strajk Uczniowski</strong>
+            <small>Puszcza basy przez szkolne tuby! Rozpoczyna wątek Buntu Uczniów (+250 pkt dla wszystkich)!</small>
+          </div>
+        </button>
+        <button id="btnRadiowezelClearCCTV" class="staff-action-card steal-card">
+          <span class="staff-act-icon">🖥️</span>
+          <div class="staff-act-text">
+            <strong>Skasuj nagrania kamer CCTV</strong>
+            <small>Włam do serwera monitoringu! Usuwa wszystkie uwagi i dowody z EduVulcan (+300 pkt)!</small>
+          </div>
+        </button>
+      </div>
+
+      <div id="radiowezelStatusMsg" class="staff-status-msg" style="display: none;"></div>
+
+      <div class="staff-footer">
+        <button id="btnCloseRadiowezel" class="btn btn-outline">
+          🚪 Wyjdź ze studia radiowego
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================== -->
+  <!-- ADMIN SYSTEM (PASSWORD: niger22)               -->
+  <!-- ============================================== -->
+  <!-- Secret trigger in the bottom right corner (small white dot) -->
+  <div id="adminSecretTrigger" class="admin-corner-trigger">
+    <button id="btnOpenAdminAuth" class="btn-admin-dot" aria-label="dot"></button>
+  </div>
+
+  <!-- Admin Login Dialog -->
+  <div id="adminAuthModal" class="admin-modal-backdrop" style="display: none;">
+    <div class="admin-auth-box">
+      <div class="admin-card-head">
+        <span class="admin-shield">🛡️</span>
+        <h3>PANEL ADMINISTRATORA</h3>
+        <button id="btnCloseAdminAuth" class="btn-admin-close">✕</button>
+      </div>
+      <p class="admin-auth-info">Dostęp do konsoli deweloperskiej i narzędzi kontroli gry.</p>
+      <form id="adminAuthForm" onsubmit="return false;">
+        <div class="admin-input-wrap">
+          <input type="password" id="adminPasswordInput" class="admin-pwd-input" placeholder="Wpisz hasło administratora..." autocomplete="off">
+          <button type="submit" id="btnSubmitAdminPass" class="btn-admin-unlock">Odblokuj ⚡</button>
+        </div>
+      </form>
+      <div id="adminAuthError" class="admin-error-badge" style="display: none;">❌ Nieprawidłowe hasło! Odmowa dostępu.</div>
+      <small class="admin-hint-text">💡 Wskazówka: Po zalogowaniu możesz otwierać panel w dowolnej chwili klawiszem <strong>[F2]</strong>.</small>
+    </div>
+  </div>
+
+  <!-- Full Admin Dashboard Modal -->
+  <div id="adminDashboardModal" class="admin-dashboard-backdrop" style="display: none;">
+    <div class="admin-dashboard-window">
+      <!-- Window Titlebar -->
+      <div class="admin-dash-titlebar">
+        <div class="admin-dash-title">
+          <span class="admin-pulse-dot">🔴</span>
+          <strong>HALBINA ADMIN CONSOLE [GOD MODE]</strong>
+          <span class="admin-status-badge">ZALOGOWANO: niger22</span>
+        </div>
+        <button id="btnCloseAdminDash" class="btn-admin-close">✕</button>
+      </div>
+
+      <!-- Navigation tabs -->
+      <div class="admin-tabs-bar">
+        <button class="admin-tab-btn active" data-tab="adminTabPlayer">👑 Gracz & God Mode</button>
+        <button class="admin-tab-btn" data-tab="adminTabItems">🎒 Spawn Przedmiotów</button>
+        <button class="admin-tab-btn" data-tab="adminTabTeleport">📍 Teleportacja</button>
+        <button class="admin-tab-btn" data-tab="adminTabTeacher">👩‍🏫 Pani Halbina</button>
+        <button class="admin-tab-btn" data-tab="adminTabWorld">⚡ Kontrola Świata & Gry</button>
+      </div>
+
+      <!-- Tab Contents -->
+      <div class="admin-tabs-content">
+        <!-- 1. Player & God Mode -->
+        <div id="adminTabPlayer" class="admin-tab-pane active">
+          <div class="admin-section-grid">
+            <div class="admin-card">
+              <h4>🛡️ Nietykalność i Ruch</h4>
+              <div class="admin-toggles-row">
+                <label class="admin-toggle-label">
+                  <input type="checkbox" id="adminToggleGodMode">
+                  <span>👑 <strong>God Mode</strong> (Nieśmiertelność, brak uwag i eliminacji)</span>
+                </label>
+                <label class="admin-toggle-label">
+                  <input type="checkbox" id="adminToggleNoclip">
+                  <span>👻 <strong>Noclip</strong> (Przenikanie przez ściany i drzwi)</span>
+                </label>
+              </div>
+              <div class="admin-speed-row">
+                <span class="admin-row-title">🚀 Speed Hack:</span>
+                <div class="admin-btn-group">
+                  <button class="btn-adm-speed active" data-speed="1">1x</button>
+                  <button class="btn-adm-speed" data-speed="2">2x</button>
+                  <button class="btn-adm-speed" data-speed="3">3x</button>
+                  <button class="btn-adm-speed" data-speed="5">5x Flash</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <h4>💰 Pieniądze & Respekt</h4>
+              <div class="admin-btn-row">
+                <button class="btn-adm-action" data-action="give_money" data-arg="1000">💵 +1 000 zł</button>
+                <button class="btn-adm-action" data-action="give_money" data-arg="10000">💵 +10 000 zł</button>
+                <button class="btn-adm-action" data-action="give_money" data-arg="100000">💵 +100 000 zł</button>
+              </div>
+              <div class="admin-btn-row">
+                <button class="btn-adm-action" data-action="give_points" data-arg="1000">🏆 +1 000 Respekt</button>
+                <button class="btn-adm-action" data-action="give_points" data-arg="5000">🏆 +5 000 Respekt</button>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <h4>📋 EduVulcan & Status Ucznia</h4>
+              <div class="admin-btn-row">
+                <button class="btn-adm-action" data-action="clear_notes">✨ Wykasuj moje uwagi (EduVulcan)</button>
+                <button class="btn-adm-action" data-action="instant_homework">📓 Zrób zadanie domowe (Ocena 6)</button>
+              </div>
+              <div class="admin-btn-row">
+                <button class="btn-adm-action btn-danger" data-action="switch_role">🔄 Zamień rolę (Uczeń ↔ Halbina)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Spawn Items -->
+        <div id="adminTabItems" class="admin-tab-pane">
+          <div class="admin-items-banner">
+            <button class="btn-adm-super" data-action="give_all_items">🎒 DAJ WSZYSTKIE PRZEDMIOTY (PEŁEN ARSENAŁ BRONI I GADŻETÓW)</button>
+          </div>
+          <div class="admin-item-grid">
+            <button class="btn-adm-item" data-action="give_item" data-item="ar15" data-qty="1">
+              <span class="adm-it-icon">🔫</span>
+              <strong>Karabin AR-15</strong>
+              <small>Broń automatyczna</small>
+            </button>
+            <button class="btn-adm-item" data-action="give_item" data-item="mag_ar15" data-qty="3">
+              <span class="adm-it-icon">🗃️</span>
+              <strong>Magazynek 5.56mm (x3)</strong>
+              <small>90 naboi NATO</small>
+            </button>
+            <button class="btn-adm-item" data-action="give_item" data-item="makarov" data-qty="1">
+              <span class="adm-it-icon">🔫</span>
+              <strong>Pistolet Makarow</strong>
+              <small>Broń 9mm</small>
+            </button>
+            <button class="btn-adm-item" data-action="give_item" data-item="mag_makarov" data-qty="3">
+              <span class="adm-it-icon">🗃️</span>
+              <strong>Magazynek 9mm (x3)</strong>
+              <small>24 naboje 9mm</small>
+            </button>
+            <button class="btn-adm-item" data-action="give_item" data-item="machete" data-qty="1">
+              <span class="adm-it-icon">🗡️</span>
+              <strong>Bojowa Maczeta</strong>
+              <small>Ogłuszający cios</small>
+            </button>
+            <button class="btn-adm-item" data-action="give_item" data-item="knife" data-qty="1">
+              <span class="adm-it-icon">🔪</span>
+              <strong>Nóż Sprężynowy</strong>
+              <small>Szybkie cięcie</small>
+            </button>
+            <button class="btn-adm-item" data-action="give_item" data-item="smoke_grenade" data-qty="3">
+              <span class="adm-it-icon">🚨</span>
+              <strong>Świeca Dymna (x3)</strong>
+              <small>Alarm pożarowy</small>
+            </button>
+            <button class="btn-adm-item" data-action="give_item" data-item="vape" data-qty="1">
+              <span class="adm-it-icon">💨</span>
+              <strong>E-Papieros Vape</strong>
+              <small>Buch i chill</small>
+            </button>
+            <button class="btn-adm-item" data-action="give_item" data-item="firecracker" data-qty="3">
+              <span class="adm-it-icon">🧨</span>
+              <strong>Petarda Korsarz (x3)</strong>
+              <small>Huk i dym</small>
+            </button>
+            <button class="btn-adm-item" data-action="give_item" data-item="master_keycard" data-qty="1">
+              <span class="adm-it-icon">💳</span>
+              <strong>Karta Master RFID</strong>
+              <small>Wszystkie drzwi</small>
+            </button>
+            <button class="btn-adm-item" data-action="give_item" data-item="janitor_key" data-qty="1">
+              <span class="adm-it-icon">🗝️</span>
+              <strong>Klucz Woźnego</strong>
+              <small>Schowek woźnego</small>
+            </button>
+            <button class="btn-adm-item" data-action="give_item" data-item="bolt_cutter" data-qty="1">
+              <span class="adm-it-icon">🛠️</span>
+              <strong>Nożyce do metalu / Łom</strong>
+              <small>Forsowanie kłódek</small>
+            </button>
+            <button class="btn-adm-item" data-action="give_item" data-item="director_stamp" data-qty="1">
+              <span class="adm-it-icon">📑</span>
+              <strong>Pieczątka Dyrektora</strong>
+              <small>Lewe zwolnienia</small>
+            </button>
+            <button class="btn-adm-item" data-action="give_item" data-item="exam_key" data-qty="1">
+              <span class="adm-it-icon">🔑</span>
+              <strong>Klucz Sprawdzianu</strong>
+              <small>Auto-sukces zadania</small>
+            </button>
+            <button class="btn-adm-item" data-action="give_item" data-item="energy_drink" data-qty="3">
+              <span class="adm-it-icon">⚡</span>
+              <strong>Monster Energy (x3)</strong>
+              <small>Super Speed Boost</small>
+            </button>
+            <button class="btn-adm-item" data-action="give_item" data-item="coffee" data-qty="2">
+              <span class="adm-it-icon">☕</span>
+              <strong>Kawa Nauczycielska</strong>
+              <small>Reset wkurwienia</small>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Teleportation -->
+        <div id="adminTabTeleport" class="admin-tab-pane">
+          <p class="admin-pane-desc">Wybierz lokację, by natychmiast się tam przenieść:</p>
+          <div class="admin-teleport-grid">
+            <button class="btn-adm-tp" data-action="teleport" data-zone="CHEMISTRY" data-x="500" data-y="350">
+              <span class="adm-tp-icon">🏫</span>
+              <strong>Sala Chemiczna 204</strong>
+              <small>Sektor ławek i tablica</small>
+            </button>
+            <button class="btn-adm-tp" data-action="teleport" data-zone="CORRIDOR" data-x="500" data-y="350">
+              <span class="adm-tp-icon">🚪</span>
+              <strong>Korytarz Szkolny</strong>
+              <small>Szafki i radiowęzeł</small>
+            </button>
+            <button class="btn-adm-tp" data-action="teleport" data-zone="TOILET" data-x="350" data-y="350">
+              <span class="adm-tp-icon">🚻</span>
+              <strong>Toalety Uczniowskie</strong>
+              <small>Miejscówka dilera Seby</small>
+            </button>
+            <button class="btn-adm-tp" data-action="teleport" data-zone="BUFFET" data-x="500" data-y="350">
+              <span class="adm-tp-icon">🥪</span>
+              <strong>Sklepik Szkolny</strong>
+              <small>Pani Basia i drożdżówki</small>
+            </button>
+            <button class="btn-adm-tp" data-action="teleport" data-zone="COURTYARD" data-x="500" data-y="350">
+              <span class="adm-tp-icon">⚽</span>
+              <strong>Boisko / Dziedziniec</strong>
+              <small>Ewakuacja & Kaucjomat</small>
+            </button>
+            <button class="btn-adm-tp" data-action="teleport" data-zone="STAFF_ROOM" data-x="500" data-y="350">
+              <span class="adm-tp-icon">☕</span>
+              <strong>Pokój Nauczycielski</strong>
+              <small>Kawa i sprawdziany</small>
+            </button>
+            <button class="btn-adm-tp" data-action="teleport" data-zone="JANITOR" data-x="450" data-y="350">
+              <span class="adm-tp-icon">🧹</span>
+              <strong>Schowek Woźnego</strong>
+              <small>Miotły i bezpieczniki</small>
+            </button>
+            <button class="btn-adm-tp" data-action="teleport" data-zone="DIRECTOR" data-x="500" data-y="350">
+              <span class="adm-tp-icon">👔</span>
+              <strong>Gabinet Dyrektora</strong>
+              <small>Rozmowy dyscyplinarne</small>
+            </button>
+            <button class="btn-adm-tp" data-action="teleport" data-zone="RADIO" data-x="500" data-y="350">
+              <span class="adm-tp-icon">📻</span>
+              <strong>Studio Radiowęzła</strong>
+              <small>Mikrofon i monitoring CCTV</small>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4. Teacher (Halbina) -->
+        <div id="adminTabTeacher" class="admin-tab-pane">
+          <div class="admin-section-grid">
+            <div class="admin-card">
+              <h4>🤬 Poziom Wkurwienia (Anger)</h4>
+              <div class="admin-btn-row">
+                <button class="btn-adm-action" data-action="teacher_anger" data-arg="0">😇 0% Spokojna</button>
+                <button class="btn-adm-action" data-action="teacher_anger" data-arg="50">😠 50% Zirytowana</button>
+                <button class="btn-adm-action btn-danger" data-action="teacher_anger" data-arg="100">🔥 100% WŚCIEKŁA (RAGE)</button>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <h4>🔄 Obrót i Status</h4>
+              <div class="admin-btn-row">
+                <button class="btn-adm-action" data-action="teacher_turn" data-arg="BOARD">✏️ Obróć do tablicy</button>
+                <button class="btn-adm-action" data-action="teacher_turn" data-arg="CLASS">🚨 Obróć na klasę</button>
+                <button class="btn-adm-action" data-action="teacher_stun" data-arg="15">💫 Ogłusz na 15s</button>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <h4>🗣️ Wymuś Wypowiedź w Dymku</h4>
+              <div class="admin-say-wrap">
+                <input type="text" id="adminTeacherSayText" class="admin-text-input" placeholder="Wpisz tekst, np. Dzisiaj wszyscy macie szóstki!">
+                <button id="btnAdminTeacherSay" class="btn-adm-action">Mów na głos 🗣️</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. World & Game Control -->
+        <div id="adminTabWorld" class="admin-tab-pane">
+          <div class="admin-section-grid">
+            <div class="admin-card">
+              <h4>🚨 Alarm Pożarowy i Ewakuacja</h4>
+              <div class="admin-btn-row">
+                <button class="btn-adm-action btn-danger" data-action="fire_alarm" data-arg="true">🔥 Uruchom Alarm Pożarowy (Ewakuacja)</button>
+                <button class="btn-adm-action" data-action="fire_alarm" data-arg="false">✅ Odwołaj Alarm Pożarowy</button>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <h4>⚡ Zasilanie Szkoły (Blackout)</h4>
+              <div class="admin-btn-row">
+                <button class="btn-adm-action" data-action="blackout" data-arg="true">🌑 Wyłącz Światła (Blackout)</button>
+                <button class="btn-adm-action" data-action="blackout" data-arg="false">💡 Włącz Światła (Zasilanie OK)</button>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <h4>⏱️ Zegar Lekcji</h4>
+              <div class="admin-btn-row">
+                <button class="btn-adm-action" data-action="adjust_timer" data-arg="60">➕ Dodaj 60 sekund</button>
+                <button class="btn-adm-action" data-action="adjust_timer" data-arg="-60">➖ Odejmij 60 sekund</button>
+                <button class="btn-adm-action btn-danger" data-action="adjust_timer" data-arg="-9999">🔔 Natychmiastowy Dzwonek!</button>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <h4>📢 Komunikat z Radiowęzła</h4>
+              <div class="admin-say-wrap">
+                <input type="text" id="adminPaText" class="admin-text-input" placeholder="Treść komunikatu do całej szkoły...">
+                <button id="btnAdminPaBroadcast" class="btn-adm-action">Nadaj komunikat 📢</button>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <h4>👥 Wszyscy Gracze</h4>
+              <div class="admin-btn-row">
+                <button class="btn-adm-action" data-action="clear_notes" data-arg="all">✨ Wyczyść uwagi wszystkim</button>
+                <button class="btn-adm-action" data-action="give_all_money" data-arg="1000">💵 Daj po 1000 zł wszystkim</button>
+                <button class="btn-adm-action" data-action="revive_all">❤️ Ożyw wszystkich uczniów</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer with quick alert / status -->
+      <div class="admin-dash-footer">
+        <span id="adminLastActionStatus">🟢 Gotowy do działania. Wciśnij [F2], by szybko zamknąć/otworzyć.</span>
+        <button id="btnLogoutAdmin" class="btn-admin-logout">Wyloguj</button>
       </div>
     </div>
   </div>
